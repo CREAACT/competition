@@ -1,10 +1,23 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { User, Users, LogOut } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Outlet } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function DashboardLayout() {
-  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error: any) {
+      toast.error(error.message || 'Error logging out');
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -31,7 +44,7 @@ export function DashboardLayout() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={logout}>
+                    <SidebarMenuButton onClick={handleLogout}>
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>
                     </SidebarMenuButton>

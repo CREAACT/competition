@@ -147,6 +147,13 @@ const Register = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Registering...' : 'Register'}
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <a href="/login" className="text-primary hover:underline">
+                Login
+              </a>
+            </p>
           </form>
         </CardContent>
       </Card>
