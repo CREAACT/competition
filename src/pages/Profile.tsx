@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -8,15 +7,57 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 const Profile = () => {
-  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  if (!user) return null;
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setFirstName(profile.first_name);
+      setLastName(profile.last_name);
+    }
+  }, [profile]);
+
+  if (isLoading) {
+    return (
+      <Card className="max-w-2xl mx-auto animate-pulse">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Loading...</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-red-500">Error loading profile</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -25,7 +66,7 @@ const Profile = () => {
       if (!file) return;
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}.${fileExt}`;
+      const filePath = `${profile.id}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -40,7 +81,7 @@ const Profile = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
+        .eq('id', profile.id);
 
       if (updateError) throw updateError;
 
@@ -61,13 +102,12 @@ const Profile = () => {
           first_name: firstName,
           last_name: lastName,
         })
-        .eq('id', user.id);
+        .eq('id', profile.id);
 
       if (error) throw error;
 
       toast.success('Profile updated successfully');
       setIsEditing(false);
-      window.location.reload();
     } catch (error: any) {
       toast.error(error.message || 'Error updating profile');
     }
@@ -82,8 +122,8 @@ const Profile = () => {
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           <div className="relative group">
             <Avatar className="w-24 h-24">
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+              <AvatarImage src={profile.avatar_url} />
+              <AvatarFallback>{firstName[0]}{lastName[0]}</AvatarFallback>
             </Avatar>
             <Input
               type="file"
@@ -128,10 +168,9 @@ const Profile = () => {
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-bold">{user.firstName} {user.lastName}</h2>
-                <p className="text-muted-foreground">{user.email}</p>
-                <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
-                  {user.status}
+                <h2 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h2>
+                <Badge variant={profile.status === 'online' ? 'default' : 'secondary'}>
+                  {profile.status}
                 </Badge>
                 <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
               </>

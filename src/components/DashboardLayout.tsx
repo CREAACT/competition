@@ -1,16 +1,75 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { User, Users, LogOut, Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect } from "react";
 
 export function DashboardLayout() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    // Update user status to online when component mounts
+    const updateStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ status: 'online' })
+            .eq('id', user.id);
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    };
+
+    updateStatus();
+
+    // Set up presence channel
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        console.log('Presence sync');
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        console.log('Join:', key);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await channel.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
+          }
+        }
+      });
+
+    // Set status to offline when component unmounts
+    return () => {
+      const cleanup = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('profiles')
+              .update({ status: 'offline' })
+              .eq('id', user.id);
+          }
+          await supabase.removeChannel(channel);
+        } catch (error) {
+          console.error('Error cleaning up:', error);
+        }
+      };
+      cleanup();
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -30,18 +89,18 @@ export function DashboardLayout() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/dashboard/profile" className="flex items-center gap-2">
+                <Link to="/dashboard/profile" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
                   <span>Profile</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/dashboard/participants" className="flex items-center gap-2">
+                <Link to="/dashboard/participants" className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   <span>Participants</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
