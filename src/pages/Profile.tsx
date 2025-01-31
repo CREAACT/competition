@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const { data: profile, isLoading, error } = useQuery({
@@ -36,6 +38,7 @@ const Profile = () => {
     if (profile) {
       setFirstName(profile.first_name);
       setLastName(profile.last_name);
+      setDescription(profile.description || '');
     }
   }, [profile]);
 
@@ -101,6 +104,7 @@ const Profile = () => {
         .update({
           first_name: firstName,
           last_name: lastName,
+          description: description,
         })
         .eq('id', profile.id);
 
@@ -119,7 +123,7 @@ const Profile = () => {
         <CardTitle className="text-2xl font-bold">Profile</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
+        <div className="flex flex-col md:flex-row md:items-start gap-6">
           <div className="relative group">
             <Avatar className="w-24 h-24">
               <AvatarImage src={profile.avatar_url} />
@@ -160,19 +164,37 @@ const Profile = () => {
                       onChange={(e) => setLastName(e.target.value)}
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">About Me</Label>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Tell us about yourself..."
+                      className="h-32"
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSave}>Save</Button>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button size="sm" onClick={handleSave}>Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
                 </div>
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h2>
-                <Badge variant={profile.status === 'online' ? 'default' : 'secondary'}>
-                  {profile.status}
-                </Badge>
-                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                <div>
+                  <h2 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h2>
+                  <Badge variant={profile.status === 'online' ? 'default' : 'secondary'} className="mt-2">
+                    {profile.status}
+                  </Badge>
+                </div>
+                <div className="mt-4">
+                  <h3 className="font-medium mb-2">About Me</h3>
+                  <p className="text-muted-foreground">
+                    {profile.description || 'No description provided'}
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => setIsEditing(true)}>Edit Profile</Button>
               </>
             )}
           </div>
