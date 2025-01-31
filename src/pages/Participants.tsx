@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 type Profile = Tables<'profiles'>;
 
@@ -33,8 +34,8 @@ const Participants = () => {
 
     fetchProfiles();
 
-    // Subscribe to realtime changes
-    const channel = supabase
+    // Subscribe to realtime changes for both profile updates and presence
+    const profilesChannel = supabase
       .channel('profiles-changes')
       .on(
         'postgres_changes',
@@ -44,14 +45,41 @@ const Participants = () => {
           table: 'profiles'
         },
         (payload) => {
-          console.log('Change received!', payload);
+          console.log('Profile change received!', payload);
           fetchProfiles();
         }
       )
       .subscribe();
 
+    // Set up presence channel for real-time status updates
+    const presenceChannel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        console.log('Presence sync');
+        fetchProfiles(); // Refresh profiles to get latest status
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        console.log('Join:', key);
+        fetchProfiles(); // Refresh profiles when someone joins
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        console.log('Leave:', key);
+        fetchProfiles(); // Refresh profiles when someone leaves
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await presenceChannel.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
+          }
+        }
+      });
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(presenceChannel);
     };
   }, []);
 
@@ -68,7 +96,7 @@ const Participants = () => {
             placeholder="Search participants..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            className="max-w-sm w-full"
           />
         </div>
       </CardHeader>
@@ -77,8 +105,8 @@ const Participants = () => {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center space-x-4 p-4 bg-secondary/50 rounded-lg">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
+                <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+                <div className="space-y-2 flex-grow">
                   <Skeleton className="h-4 w-[200px]" />
                   <Skeleton className="h-4 w-[150px]" />
                 </div>
@@ -90,16 +118,26 @@ const Participants = () => {
             </div>
           ) : (
             filteredProfiles.map((profile) => (
-              <div key={profile.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 bg-secondary/50 rounded-lg transition-colors hover:bg-secondary/70">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={profile.avatar_url || undefined} />
+              <div 
+                key={profile.id} 
+                className="flex items-center gap-4 p-4 bg-secondary/50 rounded-lg transition-colors hover:bg-secondary/70"
+              >
+                <Avatar className="w-12 h-12 flex-shrink-0">
+                  <AvatarImage src={profile.avatar_url || undefined} alt={`${profile.first_name} ${profile.last_name}`} />
                   <AvatarFallback>{profile.first_name[0]}{profile.last_name[0]}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-medium">{profile.first_name} {profile.last_name}</h3>
-                  <p className="text-sm text-muted-foreground">Joined {new Date(profile.created_at).toLocaleDateString()}</p>
+                <div className="flex-grow min-w-0">
+                  <h3 className="font-medium truncate">
+                    {profile.first_name} {profile.last_name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Joined {format(new Date(profile.created_at), 'PP')}
+                  </p>
                 </div>
-                <Badge variant={profile.status === 'online' ? 'default' : 'secondary'} className="self-start md:self-center">
+                <Badge 
+                  variant={profile.status === 'online' ? 'default' : 'secondary'}
+                  className="flex-shrink-0 whitespace-nowrap"
+                >
                   {profile.status}
                 </Badge>
               </div>
