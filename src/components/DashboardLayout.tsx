@@ -23,7 +23,7 @@ export function DashboardLayout() {
     }
   };
 
-  const SidebarContent = () => (
+  const SidebarNavigation = () => (
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupContent>
@@ -67,12 +67,12 @@ export function DashboardLayout() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
-              <SidebarContent />
+              <SidebarNavigation />
             </SheetContent>
           </Sheet>
         ) : (
           <Sidebar>
-            <SidebarContent />
+            <SidebarNavigation />
           </Sidebar>
         )}
         <main className="flex-1 p-6 md:p-8 pt-16 md:pt-8">
