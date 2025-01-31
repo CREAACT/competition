@@ -126,7 +126,7 @@ const Profile = () => {
         <div className="flex flex-col md:flex-row md:items-start gap-6">
           <div className="relative group">
             <Avatar className="w-24 h-24">
-              <AvatarImage src={profile.avatar_url} />
+              <AvatarImage src={profile.avatar_url || ''} />
               <AvatarFallback>{firstName[0]}{lastName[0]}</AvatarFallback>
             </Avatar>
             <Input
@@ -185,7 +185,7 @@ const Profile = () => {
                 <div>
                   <h2 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h2>
                   <Badge variant={profile.status === 'online' ? 'default' : 'secondary'} className="mt-2">
-                    {profile.status}
+                    {profile.status || 'offline'}
                   </Badge>
                 </div>
                 <div className="mt-4">
@@ -194,7 +194,9 @@ const Profile = () => {
                     {profile.description || 'No description provided'}
                   </p>
                 </div>
-                <Button size="sm" onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                <Button size="sm" onClick={() => setIsEditing(true)} className="mt-4">
+                  Edit Profile
+                </Button>
               </>
             )}
           </div>
