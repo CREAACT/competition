@@ -21,16 +21,24 @@ const Login = () => {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message === 'Invalid login credentials') {
+          toast.error('Invalid email or password. Please try again or register if you don\'t have an account.');
+        } else {
+          toast.error(error.message || 'Failed to login');
+        }
+        return;
+      }
 
       toast.success('Successfully logged in!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to login');
+      toast.error('An unexpected error occurred. Please try again.');
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -53,6 +61,8 @@ const Login = () => {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email"
+                className="w-full"
               />
             </div>
             
@@ -64,6 +74,8 @@ const Login = () => {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Enter your password"
+                className="w-full"
               />
             </div>
             
