@@ -21,7 +21,7 @@ const Friends = () => {
         .select(`
           friend_id,
           status,
-          friend:profiles (
+          profiles!friends_friend_id_fkey (
             first_name,
             last_name,
             avatar_url,
@@ -80,20 +80,20 @@ const Friends = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage src={friend.friend?.avatar_url || ''} />
+                    <AvatarImage src={friend.profiles?.avatar_url || ''} />
                     <AvatarFallback>
-                      {friend.friend?.first_name?.[0]}{friend.friend?.last_name?.[0]}
+                      {friend.profiles?.first_name?.[0]}{friend.profiles?.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-medium">
-                      {friend.friend?.first_name} {friend.friend?.last_name}
+                      {friend.profiles?.first_name} {friend.profiles?.last_name}
                     </h3>
                     <Badge 
-                      variant={friend.friend?.status === 'online' ? 'default' : 'secondary'}
+                      variant={friend.profiles?.status === 'online' ? 'default' : 'secondary'}
                       className="mt-1"
                     >
-                      {friend.friend?.status || 'offline'}
+                      {friend.profiles?.status || 'offline'}
                     </Badge>
                   </div>
                 </div>
