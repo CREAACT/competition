@@ -38,12 +38,24 @@ const Friends = () => {
 
   const handleRemoveFriend = async (friendId: string) => {
     try {
-      const { error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete both directions of the friendship
+      const { error: error1 } = await supabase
         .from('friends')
         .delete()
+        .eq('user_id', user.id)
         .eq('friend_id', friendId);
 
-      if (error) throw error;
+      const { error: error2 } = await supabase
+        .from('friends')
+        .delete()
+        .eq('user_id', friendId)
+        .eq('friend_id', user.id);
+
+      if (error1 || error2) throw error1 || error2;
+      
       toast.success('Friend removed successfully');
       refetch();
     } catch (error: any) {
