@@ -32,17 +32,14 @@ const Messenger = () => {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          sender_id,
-          receiver_id,
-          content,
-          created_at,
-          sender:profiles!messages_sender_id_fkey (
+          *,
+          sender:profiles(
             first_name,
             last_name,
             avatar_url,
             status
           ),
-          receiver:profiles!messages_receiver_id_fkey (
+          receiver:profiles(
             first_name,
             last_name,
             avatar_url,
@@ -66,18 +63,21 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey (
+          sender:profiles(
             first_name,
             last_name,
             avatar_url
           ),
-          receiver:profiles!messages_receiver_id_fkey (
+          receiver:profiles(
             first_name,
             last_name,
             avatar_url
           )
         `)
-        .or(`and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),and(sender_id.eq.${selectedChat},receiver_id.eq.${currentUser?.id})`)
+        .or(
+          `and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),` +
+          `and(sender_id.eq.${selectedChat},receiver_id.eq.${currentUser?.id})`
+        )
         .order('created_at', { ascending: true });
 
       if (error) throw error;
