@@ -33,13 +33,13 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles(
+          sender:profiles!sender_id(
             first_name,
             last_name,
             avatar_url,
             status
           ),
-          receiver:profiles(
+          receiver:profiles!receiver_id(
             first_name,
             last_name,
             avatar_url,
@@ -63,12 +63,12 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles(
+          sender:profiles!sender_id(
             first_name,
             last_name,
             avatar_url
           ),
-          receiver:profiles(
+          receiver:profiles!receiver_id(
             first_name,
             last_name,
             avatar_url
