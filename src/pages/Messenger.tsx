@@ -22,14 +22,17 @@ const Messenger = () => {
       const { data: messages, error } = await supabase
         .from('messages')
         .select(`
-          distinct on (sender_id, receiver_id) *,
-          sender:sender_id(
+          sender_id,
+          receiver_id,
+          content,
+          created_at,
+          sender:profiles!messages_sender_id_fkey (
             first_name,
             last_name,
             avatar_url,
             status
           ),
-          receiver:receiver_id(
+          receiver:profiles!messages_receiver_id_fkey (
             first_name,
             last_name,
             avatar_url,
@@ -55,12 +58,12 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:sender_id(
+          sender:profiles!messages_sender_id_fkey (
             first_name,
             last_name,
             avatar_url
           ),
-          receiver:receiver_id(
+          receiver:profiles!messages_receiver_id_fkey (
             first_name,
             last_name,
             avatar_url
@@ -116,10 +119,11 @@ const Messenger = () => {
         <CardTitle>Messages</CardTitle>
       </CardHeader>
       <CardContent className="flex h-[calc(100%-5rem)] gap-4">
-        <div className="w-1/3 border-r pr-4 overflow-y-auto">
+        <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
           {chats?.map((chat) => {
-            const isReceiver = chat.receiver_id === selectedChat;
-            const contact = isReceiver ? chat.receiver : chat.sender;
+            const { data: { user } } = await supabase.auth.getUser();
+            const isReceiver = chat.receiver_id === user?.id;
+            const contact = isReceiver ? chat.sender : chat.receiver;
             
             return (
               <div
@@ -153,12 +157,12 @@ const Messenger = () => {
           })}
         </div>
         
-        <div className="flex-1 flex flex-col">
+        <div className="hidden md:flex flex-1 flex-col">
           {selectedChat ? (
             <>
               <div className="flex-1 overflow-y-auto mb-4">
                 {messages?.map((message) => {
-                  const { data: { user } } = await supabase.auth.getUser();
+                  const { data: { user } } = supabase.auth.getUser();
                   const isOwnMessage = message.sender_id === user?.id;
                   
                   return (

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, MessageSquare, Trash2 } from 'lucide-react';
+import { UserPlus, MessageSquare, Trash2, Check, Clock, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -93,6 +93,22 @@ const Participants = () => {
     );
   };
 
+  const getFriendRequestIcon = (profileId: string) => {
+    const friendship = getFriendshipStatus(profileId);
+    if (!friendship) return <UserPlus className="h-4 w-4" />;
+    
+    switch (friendship.status) {
+      case 'accepted':
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'rejected':
+        return <X className="h-4 w-4 text-red-500" />;
+      default:
+        return <UserPlus className="h-4 w-4" />;
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
@@ -112,14 +128,12 @@ const Participants = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {profiles?.map((profile) => {
-              const friendship = getFriendshipStatus(profile.id);
               const isCurrentUser = profile.id === currentUser?.id;
               
               return (
                 <div
                   key={profile.id}
-                  className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => setSelectedProfile(profile)}
+                  className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -142,16 +156,14 @@ const Participants = () => {
                       </div>
                     </div>
                     {!isCurrentUser && (
-                      <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                        {!friendship && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleAddFriend(profile.id)}
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                        )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleAddFriend(profile.id)}
+                        >
+                          {getFriendRequestIcon(profile.id)}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

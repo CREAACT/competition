@@ -26,8 +26,7 @@ const Friends = () => {
             status
           )
         `)
-        .eq('user_id', user.id)
-        .eq('status', 'accepted');
+        .eq('user_id', user.id);
 
       if (error) throw error;
       return friendsData;
@@ -69,7 +68,7 @@ const Friends = () => {
           {friends?.map((friend) => (
             <div
               key={friend.friend_id}
-              className="p-4 border rounded-lg"
+              className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
