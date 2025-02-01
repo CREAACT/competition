@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import { DashboardLayout } from "./components/DashboardLayout";
 import Profile from "./pages/Profile";
 import Participants from "./pages/Participants";
+import Friends from "./pages/Friends";
+import Messenger from "./pages/Messenger";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -66,6 +68,8 @@ const App = () => (
               <Route index element={<Navigate to="/dashboard/profile" replace />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
+              <Route path="friends" element={<Friends />} />
+              <Route path="messenger" element={<Messenger />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
