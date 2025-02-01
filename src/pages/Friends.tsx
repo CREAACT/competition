@@ -21,7 +21,7 @@ const Friends = () => {
         .select(`
           friend_id,
           status,
-          friend:profiles!friends_friend_id_fkey (
+          friend:profiles (
             first_name,
             last_name,
             avatar_url,
@@ -82,7 +82,7 @@ const Friends = () => {
                   <Avatar>
                     <AvatarImage src={friend.friend?.avatar_url || ''} />
                     <AvatarFallback>
-                      {friend.friend?.first_name[0]}{friend.friend?.last_name[0]}
+                      {friend.friend?.first_name?.[0]}{friend.friend?.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>

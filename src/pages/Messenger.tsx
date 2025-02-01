@@ -36,13 +36,13 @@ const Messenger = () => {
           receiver_id,
           content,
           created_at,
-          sender:profiles!messages_sender_id_fkey (
+          sender:profiles (
             first_name,
             last_name,
             avatar_url,
             status
           ),
-          receiver:profiles!messages_receiver_id_fkey (
+          receiver:profiles (
             first_name,
             last_name,
             avatar_url,
@@ -66,12 +66,12 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey (
+          sender:profiles (
             first_name,
             last_name,
             avatar_url
           ),
-          receiver:profiles!messages_receiver_id_fkey (
+          receiver:profiles (
             first_name,
             last_name,
             avatar_url
@@ -141,7 +141,7 @@ const Messenger = () => {
                   <Avatar>
                     <AvatarImage src={contact?.avatar_url || ''} />
                     <AvatarFallback>
-                      {contact?.first_name[0]}{contact?.last_name[0]}
+                      {contact?.first_name?.[0]}{contact?.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
