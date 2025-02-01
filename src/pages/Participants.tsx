@@ -66,7 +66,7 @@ const Participants = () => {
   };
 
   const handleMessage = (profileId: string) => {
-    navigate('/dashboard/messenger');
+    navigate(`/dashboard/messenger?userId=${profileId}`);
     setSelectedProfile(null);
   };
 
@@ -171,15 +171,6 @@ const Participants = () => {
                         >
                           <MessageSquare className="h-4 w-4" />
                         </Button>
-                        {currentUser?.id === profile.id && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteProfile(profile.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
                       </div>
                     )}
                   </div>
