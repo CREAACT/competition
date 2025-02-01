@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { User, Users, LogOut, Menu, MessageSquare, UserPlus } from "lucide-react";
+import { User, Users, LogOut, Menu, MessageSquare, UserPlus, Bell } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,69 +7,78 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function DashboardLayout() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
 
   useEffect(() => {
-    // Update user status to online when component mounts
-    const updateStatus = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('profiles')
-            .update({ status: 'online' })
-            .eq('id', user.id);
-        }
-      } catch (error) {
-        console.error('Error updating status:', error);
+    const fetchFriendRequests = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('friends')
+        .select(`
+          user_id,
+          profiles!friends_user_id_fkey (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('friend_id', user.id)
+        .eq('status', 'pending');
+
+      if (data) {
+        setFriendRequests(data);
       }
     };
 
-    updateStatus();
+    fetchFriendRequests();
 
-    // Set up presence channel
-    const channel = supabase.channel('online-users')
-      .on('presence', { event: 'sync' }, () => {
-        console.log('Presence sync');
-      })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        console.log('Join:', key);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await channel.track({
-              user_id: user.id,
-              online_at: new Date().toISOString(),
-            });
-          }
+    // Subscribe to friend request changes
+    const channel = supabase
+      .channel('friend-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friends'
+        },
+        () => {
+          fetchFriendRequests();
         }
-      });
+      )
+      .subscribe();
 
-    // Set status to offline when component unmounts
     return () => {
-      const cleanup = async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('profiles')
-              .update({ status: 'offline' })
-              .eq('id', user.id);
-          }
-          await supabase.removeChannel(channel);
-        } catch (error) {
-          console.error('Error cleaning up:', error);
-        }
-      };
-      cleanup();
+      supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleAcceptFriend = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .update({ status: 'accepted' })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      toast.success('Friend request accepted');
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -151,6 +160,43 @@ export function DashboardLayout() {
           </Sidebar>
         )}
         <main className="flex-1 p-6 md:p-8 pt-16 md:pt-8">
+          <div className="fixed top-4 right-4 z-50">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {friendRequests.length > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                      {friendRequests.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                {friendRequests.length === 0 ? (
+                  <DropdownMenuItem>No new notifications</DropdownMenuItem>
+                ) : (
+                  friendRequests.map((request) => (
+                    <DropdownMenuItem key={request.user_id} className="flex flex-col items-start">
+                      <div className="flex justify-between w-full">
+                        <span>
+                          {request.profiles.first_name} {request.profiles.last_name} wants to be friends
+                        </span>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptFriend(request.user_id)}
+                        >
+                          Accept
+                        </Button>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <Outlet />
         </main>
       </div>

@@ -7,19 +7,29 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 const Messenger = () => {
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const userId = searchParams.get('userId');
+  const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    }
+  });
 
   const { data: chats, isLoading: isLoadingChats } = useQuery({
     queryKey: ['chats'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!currentUser) return [];
 
-      const { data: messages, error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select(`
           sender_id,
@@ -39,21 +49,19 @@ const Messenger = () => {
             status
           )
         `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return messages;
-    }
+      return data;
+    },
+    enabled: !!currentUser
   });
 
   const { data: messages, isLoading: isLoadingMessages } = useQuery({
     queryKey: ['messages', selectedChat],
-    enabled: !!selectedChat,
+    enabled: !!selectedChat && !!currentUser,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -69,7 +77,7 @@ const Messenger = () => {
             avatar_url
           )
         `)
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedChat}),and(sender_id.eq.${selectedChat},receiver_id.eq.${user.id})`)
+        .or(`and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),and(sender_id.eq.${selectedChat},receiver_id.eq.${currentUser?.id})`)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -78,16 +86,13 @@ const Messenger = () => {
   });
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat) return;
+    if (!newMessage.trim() || !selectedChat || !currentUser) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const { error } = await supabase
         .from('messages')
         .insert({
-          sender_id: user.id,
+          sender_id: currentUser.id,
           receiver_id: selectedChat,
           content: newMessage.trim()
         });
@@ -121,8 +126,7 @@ const Messenger = () => {
       <CardContent className="flex h-[calc(100%-5rem)] gap-4">
         <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
           {chats?.map((chat) => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const isReceiver = chat.receiver_id === user?.id;
+            const isReceiver = chat.receiver_id === currentUser?.id;
             const contact = isReceiver ? chat.sender : chat.receiver;
             
             return (
@@ -162,8 +166,7 @@ const Messenger = () => {
             <>
               <div className="flex-1 overflow-y-auto mb-4">
                 {messages?.map((message) => {
-                  const { data: { user } } = supabase.auth.getUser();
-                  const isOwnMessage = message.sender_id === user?.id;
+                  const isOwnMessage = message.sender_id === currentUser?.id;
                   
                   return (
                     <div

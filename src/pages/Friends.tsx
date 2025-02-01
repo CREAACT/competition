@@ -6,30 +6,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { UserX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Friends = () => {
+  const navigate = useNavigate();
   const { data: friends, isLoading, refetch } = useQuery({
     queryKey: ['friends'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data: friendsData, error } = await supabase
+      const { data, error } = await supabase
         .from('friends')
         .select(`
           friend_id,
           status,
-          profiles!friends_friend_id_fkey (
+          profiles:profiles!friends_friend_id_fkey (
             first_name,
             last_name,
             avatar_url,
             status
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
 
       if (error) throw error;
-      return friendsData;
+      return data;
     }
   });
 
@@ -46,6 +49,10 @@ const Friends = () => {
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  const handleMessage = (friendId: string) => {
+    navigate(`/dashboard/messenger?userId=${friendId}`);
   };
 
   if (isLoading) {
@@ -90,17 +97,26 @@ const Friends = () => {
                     </Badge>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveFriend(friend.friend_id)}
-                >
-                  <UserX className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleMessage(friend.friend_id)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveFriend(friend.friend_id)}
+                  >
+                    <UserX className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
-          {friends?.length === 0 && (
+          {(!friends || friends.length === 0) && (
             <p className="text-muted-foreground col-span-3 text-center">No friends yet</p>
           )}
         </div>
