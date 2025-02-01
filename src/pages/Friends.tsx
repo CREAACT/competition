@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { UserX } from 'lucide-react';
+import { UserX, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Friends = () => {
@@ -21,7 +21,7 @@ const Friends = () => {
         .select(`
           friend_id,
           status,
-          profiles:profiles!friends_friend_id_fkey (
+          friend:profiles!friends_friend_id_fkey (
             first_name,
             last_name,
             avatar_url,
@@ -80,20 +80,20 @@ const Friends = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage src={friend.profiles?.avatar_url || ''} />
+                    <AvatarImage src={friend.friend?.avatar_url || ''} />
                     <AvatarFallback>
-                      {friend.profiles?.first_name[0]}{friend.profiles?.last_name[0]}
+                      {friend.friend?.first_name[0]}{friend.friend?.last_name[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-medium">
-                      {friend.profiles?.first_name} {friend.profiles?.last_name}
+                      {friend.friend?.first_name} {friend.friend?.last_name}
                     </h3>
                     <Badge 
-                      variant={friend.profiles?.status === 'online' ? 'default' : 'secondary'}
+                      variant={friend.friend?.status === 'online' ? 'default' : 'secondary'}
                       className="mt-1"
                     >
-                      {friend.profiles?.status || 'offline'}
+                      {friend.friend?.status || 'offline'}
                     </Badge>
                   </div>
                 </div>
