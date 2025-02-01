@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { User, Users, LogOut, Menu } from "lucide-react";
+import { User, Users, LogOut, Menu, MessageSquare, UserPlus } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,25 +82,41 @@ export function DashboardLayout() {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      const sheetCloseButton = document.querySelector('[data-sheet-close]') as HTMLButtonElement;
+      sheetCloseButton?.click();
+    }
+  };
+
   const SidebarNavigation = () => (
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/dashboard/profile" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>Profile</span>
-                </Link>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/profile')} className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                <span>Profile</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/dashboard/participants" className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Participants</span>
-                </Link>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/participants')} className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span>Participants</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/friends')} className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4" />
+                <span>Friends</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/messenger')} className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <span>Messenger</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
