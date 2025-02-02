@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import VoiceMessage from '@/components/VoiceMessage';
+import MessageList from '@/components/MessageList';
 
 const Messenger = () => {
   const [searchParams] = useSearchParams();
@@ -15,6 +17,16 @@ const Messenger = () => {
   const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -24,8 +36,8 @@ const Messenger = () => {
     }
   });
 
-  const { data: chats, isLoading: isLoadingChats } = useQuery({
-    queryKey: ['chats'],
+  const { data: chats } = useQuery({
+    queryKey: ['chats', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return [];
 
@@ -33,31 +45,32 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(
-            id,
-            first_name,
-            last_name,
-            avatar_url,
-            status
-          ),
-          receiver:profiles!receiver_id(
-            id,
-            first_name,
-            last_name,
-            avatar_url,
-            status
-          )
+          sender:profiles!sender_id(id, first_name, last_name, avatar_url, status),
+          receiver:profiles!receiver_id(id, first_name, last_name, avatar_url, status)
         `)
         .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Group messages by chat participant
+      const chatsByParticipant = data.reduce((acc: any, message: any) => {
+        const otherParticipant = message.sender_id === currentUser.id ? message.receiver : message.sender;
+        if (!acc[otherParticipant.id]) {
+          acc[otherParticipant.id] = {
+            contact: otherParticipant,
+            lastMessage: message
+          };
+        }
+        return acc;
+      }, {});
+
+      return Object.values(chatsByParticipant);
     },
     enabled: !!currentUser
   });
 
-  const { data: messages, isLoading: isLoadingMessages } = useQuery({
+  const { data: messages } = useQuery({
     queryKey: ['messages', selectedChat],
     enabled: !!selectedChat && !!currentUser,
     queryFn: async () => {
@@ -65,18 +78,8 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          ),
-          receiver:profiles!receiver_id(
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
+          sender:profiles!sender_id(id, first_name, last_name, avatar_url),
+          receiver:profiles!receiver_id(id, first_name, last_name, avatar_url)
         `)
         .or(
           `and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),` +
@@ -89,8 +92,8 @@ const Messenger = () => {
     }
   });
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat || !currentUser) return;
+  const sendMessage = async (content: string, type: 'text' | 'voice' = 'text', voiceUrl?: string, duration?: number, waveform?: number[]) => {
+    if ((!content && type === 'text') || !selectedChat || !currentUser) return;
 
     try {
       const { error } = await supabase
@@ -98,13 +101,42 @@ const Messenger = () => {
         .insert({
           sender_id: currentUser.id,
           receiver_id: selectedChat,
-          content: newMessage.trim()
+          content,
+          message_type: type,
+          voice_url: voiceUrl,
+          voice_duration: duration,
+          waveform
         });
 
       if (error) throw error;
-      setNewMessage('');
+      if (type === 'text') setNewMessage('');
     } catch (error: any) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleVoiceMessage = async (audioBlob: Blob, waveform: number[]) => {
+    try {
+      const filename = `voice-${Date.now()}.webm`;
+      const { data, error } = await supabase.storage
+        .from('voice-messages')
+        .upload(filename, audioBlob);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('voice-messages')
+        .getPublicUrl(filename);
+
+      await sendMessage(
+        'Voice message',
+        'voice',
+        publicUrl,
+        Math.round(audioBlob.size / 1024), // Approximate duration
+        waveform
+      );
+    } catch (error) {
+      console.error('Error uploading voice message:', error);
     }
   };
 
@@ -112,15 +144,74 @@ const Messenger = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  if (isLoadingChats) {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>Loading chats...</CardTitle>
-        </CardHeader>
-      </Card>
-    );
-  }
+  const renderChatList = () => (
+    <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
+      {chats?.map((chat: any) => (
+        <div
+          key={chat.contact.id}
+          className={`p-4 cursor-pointer rounded-lg transition-colors ${
+            selectedChat === chat.contact.id ? 'bg-accent' : 'hover:bg-accent/50'
+          }`}
+          onClick={() => {
+            setSelectedChat(chat.contact.id);
+            if (isMobileView) {
+              const messageContainer = document.querySelector('.message-container');
+              if (messageContainer) {
+                messageContainer.classList.remove('hidden');
+              }
+            }
+          }}
+        >
+          <div className="flex items-center space-x-4">
+            <Avatar>
+              <AvatarImage src={chat.contact.avatar_url || ''} />
+              <AvatarFallback>
+                {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-medium">
+                {chat.contact.first_name} {chat.contact.last_name}
+              </h3>
+              <Badge 
+                variant={chat.contact.status === 'online' ? 'default' : 'secondary'}
+                className="mt-1"
+              >
+                {chat.contact.status || 'offline'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderMessageContainer = () => (
+    <div className={`flex-1 flex-col ${isMobileView ? (selectedChat ? 'flex' : 'hidden') : 'flex'} message-container`}>
+      {selectedChat ? (
+        <>
+          <MessageList messages={messages || []} />
+          <div ref={messagesEndRef} />
+          <div className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage(newMessage)}
+            />
+            <VoiceMessage onRecordingComplete={handleVoiceMessage} />
+            <Button onClick={() => sendMessage(newMessage)}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          Select a chat to start messaging
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)]">
@@ -128,81 +219,8 @@ const Messenger = () => {
         <CardTitle>Messages</CardTitle>
       </CardHeader>
       <CardContent className="flex h-[calc(100%-5rem)] gap-4">
-        <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
-          {chats?.map((chat) => {
-            const isReceiver = chat.receiver_id === currentUser?.id;
-            const contact = isReceiver ? chat.sender : chat.receiver;
-            
-            return (
-              <div
-                key={contact?.id}
-                className={`p-4 cursor-pointer rounded-lg transition-colors ${
-                  selectedChat === contact?.id ? 'bg-accent' : 'hover:bg-accent/50'
-                }`}
-                onClick={() => setSelectedChat(contact?.id)}
-              >
-                <div className="flex items-center space-x-4">
-                  <Avatar>
-                    <AvatarImage src={contact?.avatar_url || ''} />
-                    <AvatarFallback>
-                      {contact?.first_name?.[0]}{contact?.last_name?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">
-                      {contact?.first_name} {contact?.last_name}
-                    </h3>
-                    <Badge 
-                      variant={contact?.status === 'online' ? 'default' : 'secondary'}
-                      className="mt-1"
-                    >
-                      {contact?.status || 'offline'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        <div className="hidden md:flex flex-1 flex-col">
-          {selectedChat ? (
-            <>
-              <div className="flex-1 overflow-y-auto mb-4">
-                {messages?.map((message) => {
-                  const isOwnMessage = message.sender_id === currentUser?.id;
-                  
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
-                    >
-                      <div className={`max-w-[70%] ${isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-accent'} rounded-lg p-3`}>
-                        <p>{message.content}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                />
-                <Button onClick={sendMessage}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Select a chat to start messaging
-            </div>
-          )}
-        </div>
+        {renderChatList()}
+        {renderMessageContainer()}
       </CardContent>
     </Card>
   );

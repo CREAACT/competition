@@ -53,22 +53,34 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          message_type: string
           receiver_id: string
           sender_id: string
+          voice_duration: number | null
+          voice_url: string | null
+          waveform: Json | null
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          message_type?: string
           receiver_id: string
           sender_id: string
+          voice_duration?: number | null
+          voice_url?: string | null
+          waveform?: Json | null
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          message_type?: string
           receiver_id?: string
           sender_id?: string
+          voice_duration?: number | null
+          voice_url?: string | null
+          waveform?: Json | null
         }
         Relationships: [
           {
