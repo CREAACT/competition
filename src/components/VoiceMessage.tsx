@@ -58,12 +58,10 @@ const VoiceMessage = ({ onRecordingComplete, onCancel }: VoiceMessageProps) => {
       recorder.start(100);
       setIsRecording(true);
 
-      // Start timer
       timerInterval.current = window.setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
 
-      // Start collecting waveform data
       const collectWaveformData = () => {
         if (!isRecording || !analyserNode.current) return;
         
@@ -135,7 +133,7 @@ const VoiceMessage = ({ onRecordingComplete, onCancel }: VoiceMessageProps) => {
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full">
           <div className="flex-1 min-w-[200px] h-10 bg-accent rounded-lg p-2">
             {waveformData.map((value, index) => (
               <div
@@ -145,15 +143,17 @@ const VoiceMessage = ({ onRecordingComplete, onCancel }: VoiceMessageProps) => {
               />
             ))}
           </div>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
             {formatDuration(duration)}
           </span>
-          <Button variant="ghost" size="icon" onClick={handleCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-          <Button variant="default" size="icon" onClick={handleSend}>
-            <Send className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={handleCancel}>
+              <X className="h-4 w-4" />
+            </Button>
+            <Button variant="default" size="icon" onClick={handleSend}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

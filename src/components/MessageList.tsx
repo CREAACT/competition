@@ -70,6 +70,10 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                           audio.pause();
                           setPlayingAudio(null);
                         } else {
+                          if (playingAudio) {
+                            const previousAudio = document.getElementById(`audio-${playingAudio}`) as HTMLAudioElement;
+                            previousAudio?.pause();
+                          }
                           audio.play();
                           setPlayingAudio(message.id);
                         }
@@ -87,6 +91,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                       controls={false}
                       id={`audio-${message.id}`}
                       onEnded={() => setPlayingAudio(null)}
+                      onPause={() => setPlayingAudio(null)}
                     />
                   </div>
                   {message.waveform && (
@@ -120,6 +125,10 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                           video.pause();
                           setPlayingVideo(null);
                         } else {
+                          if (playingVideo) {
+                            const previousVideo = document.querySelector(`video[src="${messages.find(m => m.id === playingVideo)?.video_url}"]`) as HTMLVideoElement;
+                            previousVideo?.pause();
+                          }
                           video.play();
                           setPlayingVideo(message.id);
                         }

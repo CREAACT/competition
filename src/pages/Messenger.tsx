@@ -25,6 +25,8 @@ const Messenger = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -255,7 +257,19 @@ const Messenger = () => {
 
   const handleVideoMessage = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      setVideoStream(stream);
+      
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        videoPreviewRef.current.play();
+      }
+
       const mediaRecorder = new MediaRecorder(stream);
       const chunks: Blob[] = [];
       let startTime = Date.now();
@@ -287,6 +301,7 @@ const Messenger = () => {
         );
 
         stream.getTracks().forEach(track => track.stop());
+        setVideoStream(null);
         setIsRecordingVideo(false);
       };
 
@@ -394,6 +409,31 @@ const Messenger = () => {
             onEditMessage={(messageId, content) => editMutation.mutate({ messageId, content })}
           />
           <div ref={messagesEndRef} />
+          {videoStream && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-background p-4 rounded-lg">
+                <video
+                  ref={videoPreviewRef}
+                  className="w-[320px] h-[240px] rounded-lg"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                <div className="flex justify-end mt-4 gap-2">
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      videoStream.getTracks().forEach(track => track.stop());
+                      setVideoStream(null);
+                      setIsRecordingVideo(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 p-4">
             <Input
               value={newMessage}
@@ -413,9 +453,9 @@ const Messenger = () => {
                 className="h-9 w-9"
                 onClick={() => {
                   if (isRecordingVideo) {
-                    // Stop recording
-                    const videoTracks = document.querySelector('video')?.srcObject as MediaStream;
-                    videoTracks?.getTracks().forEach(track => track.stop());
+                    const videoTracks = videoStream?.getTracks() || [];
+                    videoTracks.forEach(track => track.stop());
+                    setVideoStream(null);
                     setIsRecordingVideo(false);
                   } else {
                     handleVideoMessage();
