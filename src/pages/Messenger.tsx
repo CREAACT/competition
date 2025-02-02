@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Mic, Video } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import VoiceMessage from '@/components/VoiceMessage';
@@ -19,6 +19,7 @@ const Messenger = () => {
   const userId = searchParams.get('userId');
   const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -66,6 +67,21 @@ const Messenger = () => {
     enabled: !!currentUser
   });
 
+  const { data: selectedChatUser } = useQuery({
+    queryKey: ['chatUser', selectedChat],
+    enabled: !!selectedChat,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', selectedChat)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const { data: messages } = useQuery({
     queryKey: ['messages', selectedChat],
     enabled: !!selectedChat && !!currentUser,
@@ -101,7 +117,6 @@ const Messenger = () => {
     }
   });
 
-  // Set up real-time subscription
   useEffect(() => {
     if (!currentUser) return;
 
@@ -238,35 +253,60 @@ const Messenger = () => {
     }
   };
 
-  const handleVideoMessage = async (videoBlob: Blob, duration: number) => {
+  const handleVideoMessage = async () => {
     try {
-      const filename = `video-${Date.now()}.webm`;
-      const { data, error } = await supabase.storage
-        .from('video-messages')
-        .upload(filename, videoBlob);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      let startTime = Date.now();
 
-      if (error) throw error;
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        const duration = Math.round((Date.now() - startTime) / 1000);
+        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+        const filename = `video-${Date.now()}.webm`;
+        
+        const { data, error } = await supabase.storage
+          .from('video-messages')
+          .upload(filename, videoBlob);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('video-messages')
-        .getPublicUrl(filename);
+        if (error) throw error;
 
-      await sendMessage(
-        'Video message',
-        'video',
-        undefined,
-        undefined,
-        undefined,
-        publicUrl,
-        duration
-      );
+        const { data: { publicUrl } } = supabase.storage
+          .from('video-messages')
+          .getPublicUrl(filename);
+
+        await sendMessage(
+          'Video message',
+          'video',
+          undefined,
+          undefined,
+          undefined,
+          publicUrl,
+          duration
+        );
+
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecordingVideo(false);
+      };
+
+      setIsRecordingVideo(true);
+      mediaRecorder.start();
+
+      // Stop recording after 30 seconds
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, 30000);
     } catch (error) {
-      console.error('Error uploading video message:', error);
+      console.error('Error recording video:', error);
       toast({
         title: 'Error',
-        description: 'Failed to send video message. Please try again.',
+        description: 'Failed to record video message. Please try again.',
         variant: 'destructive'
       });
+      setIsRecordingVideo(false);
     }
   };
 
@@ -322,34 +362,72 @@ const Messenger = () => {
     <div className={`flex-1 flex-col ${isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'}`}>
       {selectedChat && (
         <>
-          {isMobile && (
-            <div className="p-2 border-b">
-              <Button variant="ghost" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+          <div className="p-4 border-b flex items-center gap-4">
+            {isMobile && (
+              <Button variant="ghost" size="sm" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4" />
               </Button>
+            )}
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={selectedChatUser?.avatar_url || ''} />
+                <AvatarFallback>
+                  {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium">
+                  {selectedChatUser?.first_name} {selectedChatUser?.last_name}
+                </h3>
+                <Badge 
+                  variant={selectedChatUser?.status === 'online' ? 'default' : 'secondary'}
+                  className="mt-1"
+                >
+                  {selectedChatUser?.status || 'offline'}
+                </Badge>
+              </div>
             </div>
-          )}
+          </div>
           <MessageList
             messages={messages || []}
             onDeleteMessage={(messageId, forAll) => deleteMutation.mutate({ messageId, forAll })}
             onEditMessage={(messageId, content) => editMutation.mutate({ messageId, content })}
           />
           <div ref={messagesEndRef} />
-          <div className="flex gap-2 p-4">
+          <div className="flex items-center gap-2 p-4">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               onKeyPress={(e) => e.key === 'Enter' && sendMessage(newMessage)}
+              className="flex-1"
             />
-            <VoiceMessage
-              onRecordingComplete={handleVoiceMessage}
-              onCancel={() => {}}
-            />
-            <Button onClick={() => sendMessage(newMessage)}>
-              <Send className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <VoiceMessage
+                onRecordingComplete={handleVoiceMessage}
+                onCancel={() => {}}
+              />
+              <Button
+                variant={isRecordingVideo ? "destructive" : "default"}
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  if (isRecordingVideo) {
+                    // Stop recording
+                    const videoTracks = document.querySelector('video')?.srcObject as MediaStream;
+                    videoTracks?.getTracks().forEach(track => track.stop());
+                    setIsRecordingVideo(false);
+                  } else {
+                    handleVideoMessage();
+                  }
+                }}
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => sendMessage(newMessage)} className="h-9 w-9" size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </>
       )}

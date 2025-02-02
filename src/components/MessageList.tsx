@@ -43,7 +43,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
   };
 
   return (
-    <div className="flex-1 overflow-y-auto mb-4">
+    <div className="flex-1 overflow-y-auto mb-4 px-4">
       {messages?.map((message) => {
         const isOwnMessage = message.sender_id === user?.id;
         
@@ -52,22 +52,36 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
             key={message.id}
             className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
           >
-            <div className={`max-w-[70%] ${isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-accent'} rounded-lg p-3`}>
+            <div 
+              className={`max-w-[70%] ${
+                isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-accent'
+              } rounded-lg p-3`}
+            >
               {message.message_type === 'voice' && message.voice_url && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"
-                      size="icon"
-                      onClick={() => setPlayingAudio(playingAudio === message.id ? null : message.id)}
+                      size="sm"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        const audio = document.getElementById(`audio-${message.id}`) as HTMLAudioElement;
+                        if (playingAudio === message.id) {
+                          audio.pause();
+                          setPlayingAudio(null);
+                        } else {
+                          audio.play();
+                          setPlayingAudio(message.id);
+                        }
+                      }}
                     >
                       {playingAudio === message.id ? (
-                        <Pause className="h-4 w-4" />
+                        <Pause className="h-3 w-3" />
                       ) : (
-                        <Play className="h-4 w-4" />
+                        <Play className="h-3 w-3" />
                       )}
                     </Button>
-                    <span className="text-sm">{formatDuration(message.voice_duration)}</span>
+                    <span className="text-xs">{formatDuration(message.voice_duration)}</span>
                     <audio
                       src={message.voice_url}
                       controls={false}
@@ -76,12 +90,12 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                     />
                   </div>
                   {message.waveform && (
-                    <div className="h-8 flex items-center">
-                      {(message.waveform as number[]).map((value, index) => (
+                    <div className="h-6 flex items-center">
+                      {message.waveform.map((value, index) => (
                         <div
                           key={index}
-                          className="inline-block w-1 mx-[1px] bg-current opacity-50"
-                          style={{ height: `${value / 2}px` }}
+                          className="inline-block w-[2px] mx-[1px] bg-current opacity-50"
+                          style={{ height: `${value / 4}px` }}
                         />
                       ))}
                     </div>
@@ -89,7 +103,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                 </div>
               )}
               {message.message_type === 'video' && message.video_url && (
-                <div className="relative w-32 h-32 rounded-full overflow-hidden">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden">
                   <video
                     src={message.video_url}
                     className="absolute inset-0 w-full h-full object-cover"
@@ -98,18 +112,27 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="bg-black/50 hover:bg-black/70"
-                      onClick={() => setPlayingVideo(playingVideo === message.id ? null : message.id)}
+                      size="sm"
+                      className="h-6 w-6 bg-black/50 hover:bg-black/70"
+                      onClick={() => {
+                        const video = document.querySelector(`video[src="${message.video_url}"]`) as HTMLVideoElement;
+                        if (playingVideo === message.id) {
+                          video.pause();
+                          setPlayingVideo(null);
+                        } else {
+                          video.play();
+                          setPlayingVideo(message.id);
+                        }
+                      }}
                     >
                       {playingVideo === message.id ? (
-                        <Pause className="h-6 w-6 text-white" />
+                        <Pause className="h-3 w-3 text-white" />
                       ) : (
-                        <Play className="h-6 w-6 text-white" />
+                        <Play className="h-3 w-3 text-white" />
                       )}
                     </Button>
                   </div>
-                  <span className="absolute bottom-2 right-2 text-xs bg-black/50 px-2 py-1 rounded text-white">
+                  <span className="absolute bottom-1 right-1 text-[10px] bg-black/50 px-1.5 py-0.5 rounded text-white">
                     {formatDuration(message.video_duration)}
                   </span>
                 </div>
@@ -145,7 +168,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                 {isOwnMessage && (
                   <DropdownMenu>
                     <DropdownMenuTrigger>
-                      <MoreHorizontal className="h-4 w-4" />
+                      <MoreHorizontal className="h-3 w-3" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => handleEdit(message)}>
