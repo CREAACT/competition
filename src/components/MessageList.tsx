@@ -1,5 +1,5 @@
-import { Message } from '@/types/message';
-import { useAuth } from '@/hooks/useAuth';
+import { Message } from '../types/message';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MessageListProps {
   messages: Message[];
