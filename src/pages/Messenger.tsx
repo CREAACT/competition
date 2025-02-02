@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import VoiceMessage from '@/components/VoiceMessage';
 import MessageList from '@/components/MessageList';
 import { useToast } from '@/hooks/use-toast';
+import { Message } from '@/types/message';
 
 const Messenger = () => {
   const [searchParams] = useSearchParams();
@@ -73,8 +74,8 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(id, first_name, last_name, avatar),
-          receiver:profiles!receiver_id(id, first_name, last_name, avatar)
+          sender:profiles!sender_id(id, first_name, last_name, avatar_url),
+          receiver:profiles!receiver_id(id, first_name, last_name, avatar_url)
         `)
         .or(
           `and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),` +
@@ -96,7 +97,7 @@ const Messenger = () => {
           .in('id', unreadMessages.map(msg => msg.id));
       }
 
-      return data;
+      return data as Message[];
     }
   });
 
