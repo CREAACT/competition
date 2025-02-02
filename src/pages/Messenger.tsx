@@ -3,13 +3,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Send, ArrowLeft } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import VoiceMessage from '@/components/VoiceMessage';
 import MessageList from '@/components/MessageList';
+import { useToast } from '@/hooks/use-toast';
 
 const Messenger = () => {
   const [searchParams] = useSearchParams();
@@ -17,16 +19,10 @@ const Messenger = () => {
   const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -53,7 +49,6 @@ const Messenger = () => {
 
       if (error) throw error;
 
-      // Group messages by chat participant
       const chatsByParticipant = data.reduce((acc: any, message: any) => {
         const otherParticipant = message.sender_id === currentUser.id ? message.receiver : message.sender;
         if (!acc[otherParticipant.id]) {
@@ -88,7 +83,89 @@ const Messenger = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
+
+      // Mark messages as read
+      const unreadMessages = data.filter(
+        msg => msg.sender_id === selectedChat && !msg.read_at
+      );
+
+      if (unreadMessages.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ read_at: new Date().toISOString() })
+          .in('id', unreadMessages.map(msg => msg.id));
+      }
+
       return data;
+    }
+  });
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${selectedChat},receiver_id=eq.${currentUser.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['messages', selectedChat] });
+          queryClient.invalidateQueries({ queryKey: ['chats', currentUser.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, selectedChat, queryClient]);
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ messageId, forAll }: { messageId: string, forAll: boolean }) => {
+      const updates = forAll
+        ? { deleted_for_all: true, deleted_at: new Date().toISOString() }
+        : { deleted_at: new Date().toISOString() };
+
+      const { error } = await supabase
+        .from('messages')
+        .update(updates)
+        .eq('id', messageId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', selectedChat] });
+      toast({
+        title: 'Message deleted',
+        description: 'The message has been deleted successfully.'
+      });
+    }
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async ({ messageId, content }: { messageId: string, content: string }) => {
+      const { error } = await supabase
+        .from('messages')
+        .update({
+          content,
+          edited_at: new Date().toISOString()
+        })
+        .eq('id', messageId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', selectedChat] });
+      toast({
+        title: 'Message edited',
+        description: 'The message has been edited successfully.'
+      });
     }
   });
 
@@ -112,10 +189,15 @@ const Messenger = () => {
       if (type === 'text') setNewMessage('');
     } catch (error: any) {
       console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive'
+      });
     }
   };
 
-  const handleVoiceMessage = async (audioBlob: Blob, waveform: number[]) => {
+  const handleVoiceMessage = async (audioBlob: Blob, waveform: number[], duration: number) => {
     try {
       const filename = `voice-${Date.now()}.webm`;
       const { data, error } = await supabase.storage
@@ -132,17 +214,27 @@ const Messenger = () => {
         'Voice message',
         'voice',
         publicUrl,
-        Math.round(audioBlob.size / 1024), // Approximate duration
+        duration,
         waveform
       );
     } catch (error) {
       console.error('Error uploading voice message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send voice message. Please try again.',
+        variant: 'destructive'
+      });
     }
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleBack = () => {
+    setSelectedChat(null);
+    navigate('/dashboard/messenger');
+  };
 
   const renderChatList = () => (
     <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
@@ -154,11 +246,8 @@ const Messenger = () => {
           }`}
           onClick={() => {
             setSelectedChat(chat.contact.id);
-            if (isMobileView) {
-              const messageContainer = document.querySelector('.message-container');
-              if (messageContainer) {
-                messageContainer.classList.remove('hidden');
-              }
+            if (isMobile) {
+              navigate(`/dashboard/messenger?userId=${chat.contact.id}`);
             }
           }}
         >
@@ -187,28 +276,39 @@ const Messenger = () => {
   );
 
   const renderMessageContainer = () => (
-    <div className={`flex-1 flex-col ${isMobileView ? (selectedChat ? 'flex' : 'hidden') : 'flex'} message-container`}>
-      {selectedChat ? (
+    <div className={`flex-1 flex-col ${isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'}`}>
+      {selectedChat && (
         <>
-          <MessageList messages={messages || []} />
+          {isMobile && (
+            <div className="p-2 border-b">
+              <Button variant="ghost" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </div>
+          )}
+          <MessageList
+            messages={messages || []}
+            onDeleteMessage={(messageId, forAll) => deleteMutation.mutate({ messageId, forAll })}
+            onEditMessage={(messageId, content) => editMutation.mutate({ messageId, content })}
+          />
           <div ref={messagesEndRef} />
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-4">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               onKeyPress={(e) => e.key === 'Enter' && sendMessage(newMessage)}
             />
-            <VoiceMessage onRecordingComplete={handleVoiceMessage} />
+            <VoiceMessage
+              onRecordingComplete={handleVoiceMessage}
+              onCancel={() => {}}
+            />
             <Button onClick={() => sendMessage(newMessage)}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          Select a chat to start messaging
-        </div>
       )}
     </div>
   );
@@ -219,7 +319,7 @@ const Messenger = () => {
         <CardTitle>Messages</CardTitle>
       </CardHeader>
       <CardContent className="flex h-[calc(100%-5rem)] gap-4">
-        {renderChatList()}
+        {(!isMobile || !selectedChat) && renderChatList()}
         {renderMessageContainer()}
       </CardContent>
     </Card>

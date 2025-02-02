@@ -52,8 +52,12 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          deleted_for_all: boolean | null
+          edited_at: string | null
           id: string
           message_type: string
+          read_at: string | null
           receiver_id: string
           sender_id: string
           voice_duration: number | null
@@ -63,8 +67,12 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_for_all?: boolean | null
+          edited_at?: string | null
           id?: string
           message_type?: string
+          read_at?: string | null
           receiver_id: string
           sender_id: string
           voice_duration?: number | null
@@ -74,8 +82,12 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_for_all?: boolean | null
+          edited_at?: string | null
           id?: string
           message_type?: string
+          read_at?: string | null
           receiver_id?: string
           sender_id?: string
           voice_duration?: number | null
