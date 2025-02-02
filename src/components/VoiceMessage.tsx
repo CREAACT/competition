@@ -120,13 +120,20 @@ const VoiceMessage = ({ onRecordingComplete, onCancel }: VoiceMessageProps) => {
   return (
     <div className="flex items-center gap-2">
       {!previewBlob ? (
-        <Button
-          variant={isRecording ? "destructive" : "default"}
-          size="icon"
-          onClick={isRecording ? stopRecording : startRecording}
-        >
-          {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={isRecording ? "destructive" : "default"}
+            size="icon"
+            onClick={isRecording ? stopRecording : startRecording}
+          >
+            {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+          {isRecording && (
+            <span className="text-sm text-muted-foreground">
+              {formatDuration(duration)}
+            </span>
+          )}
+        </div>
       ) : (
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-[200px] h-10 bg-accent rounded-lg p-2">

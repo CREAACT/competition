@@ -73,8 +73,8 @@ const Messenger = () => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(id, first_name, last_name, avatar_url),
-          receiver:profiles!receiver_id(id, first_name, last_name, avatar_url)
+          sender:profiles!sender_id(id, first_name, last_name, avatar),
+          receiver:profiles!receiver_id(id, first_name, last_name, avatar)
         `)
         .or(
           `and(sender_id.eq.${currentUser?.id},receiver_id.eq.${selectedChat}),` +
@@ -169,7 +169,15 @@ const Messenger = () => {
     }
   });
 
-  const sendMessage = async (content: string, type: 'text' | 'voice' = 'text', voiceUrl?: string, duration?: number, waveform?: number[]) => {
+  const sendMessage = async (
+    content: string,
+    type: 'text' | 'voice' | 'video' = 'text',
+    voiceUrl?: string,
+    duration?: number,
+    waveform?: number[],
+    videoUrl?: string,
+    videoDuration?: number
+  ) => {
     if ((!content && type === 'text') || !selectedChat || !currentUser) return;
 
     try {
@@ -182,7 +190,9 @@ const Messenger = () => {
           message_type: type,
           voice_url: voiceUrl,
           voice_duration: duration,
-          waveform
+          waveform,
+          video_url: videoUrl,
+          video_duration: videoDuration
         });
 
       if (error) throw error;
@@ -222,6 +232,38 @@ const Messenger = () => {
       toast({
         title: 'Error',
         description: 'Failed to send voice message. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleVideoMessage = async (videoBlob: Blob, duration: number) => {
+    try {
+      const filename = `video-${Date.now()}.webm`;
+      const { data, error } = await supabase.storage
+        .from('video-messages')
+        .upload(filename, videoBlob);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('video-messages')
+        .getPublicUrl(filename);
+
+      await sendMessage(
+        'Video message',
+        'video',
+        undefined,
+        undefined,
+        undefined,
+        publicUrl,
+        duration
+      );
+    } catch (error) {
+      console.error('Error uploading video message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send video message. Please try again.',
         variant: 'destructive'
       });
     }

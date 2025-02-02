@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Message } from '../types/message';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { MoreHorizontal, Check, CheckCheck } from 'lucide-react';
+import { MoreHorizontal, Check, CheckCheck, Play, Pause } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface MessageListProps {
   messages: Message[];
@@ -20,6 +21,8 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
   const { user } = useAuth();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
   const handleEdit = (message: Message) => {
     setEditingMessageId(message.id);
@@ -30,6 +33,13 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
     onEditMessage(messageId, editContent);
     setEditingMessageId(null);
     setEditContent('');
+  };
+
+  const formatDuration = (seconds: number | undefined) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -45,7 +55,26 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
             <div className={`max-w-[70%] ${isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-accent'} rounded-lg p-3`}>
               {message.message_type === 'voice' && message.voice_url && (
                 <div className="space-y-2">
-                  <audio controls src={message.voice_url} className="w-full" />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPlayingAudio(playingAudio === message.id ? null : message.id)}
+                    >
+                      {playingAudio === message.id ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <span className="text-sm">{formatDuration(message.voice_duration)}</span>
+                    <audio
+                      src={message.voice_url}
+                      controls={false}
+                      id={`audio-${message.id}`}
+                      onEnded={() => setPlayingAudio(null)}
+                    />
+                  </div>
                   {message.waveform && (
                     <div className="h-8 flex items-center">
                       {(message.waveform as number[]).map((value, index) => (
@@ -57,6 +86,32 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+              {message.message_type === 'video' && message.video_url && (
+                <div className="relative w-32 h-32 rounded-full overflow-hidden">
+                  <video
+                    src={message.video_url}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    controls
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="bg-black/50 hover:bg-black/70"
+                      onClick={() => setPlayingVideo(playingVideo === message.id ? null : message.id)}
+                    >
+                      {playingVideo === message.id ? (
+                        <Pause className="h-6 w-6 text-white" />
+                      ) : (
+                        <Play className="h-6 w-6 text-white" />
+                      )}
+                    </Button>
+                  </div>
+                  <span className="absolute bottom-2 right-2 text-xs bg-black/50 px-2 py-1 rounded text-white">
+                    {formatDuration(message.video_duration)}
+                  </span>
                 </div>
               )}
               {message.message_type === 'text' && (

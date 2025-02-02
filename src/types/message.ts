@@ -3,9 +3,11 @@ export interface Message {
   content: string;
   sender_id: string;
   receiver_id: string;
-  message_type: 'text' | 'voice';
+  message_type: 'text' | 'voice' | 'video';
   voice_url?: string;
   voice_duration?: number;
+  video_url?: string;
+  video_duration?: number;
   waveform?: number[];
   created_at: string;
   read_at?: string | null;

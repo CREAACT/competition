@@ -60,6 +60,8 @@ export type Database = {
           read_at: string | null
           receiver_id: string
           sender_id: string
+          video_duration: number | null
+          video_url: string | null
           voice_duration: number | null
           voice_url: string | null
           waveform: Json | null
@@ -75,6 +77,8 @@ export type Database = {
           read_at?: string | null
           receiver_id: string
           sender_id: string
+          video_duration?: number | null
+          video_url?: string | null
           voice_duration?: number | null
           voice_url?: string | null
           waveform?: Json | null
@@ -90,6 +94,8 @@ export type Database = {
           read_at?: string | null
           receiver_id?: string
           sender_id?: string
+          video_duration?: number | null
+          video_url?: string | null
           voice_duration?: number | null
           voice_url?: string | null
           waveform?: Json | null
