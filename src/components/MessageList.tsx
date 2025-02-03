@@ -23,9 +23,10 @@ interface MessageListProps {
   onDeleteMessage: (messageId: string, forAll: boolean) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onReplyMessage?: (message: Message) => void;
+  isLoading?: boolean;
 }
 
-const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage }: MessageListProps) => {
+const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage, isLoading }: MessageListProps) => {
   const { user } = useAuth();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -40,6 +41,17 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
     setEditingMessageId(null);
     setEditContent('');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p>Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
 
   const MessageActions = ({ message, isDesktop = false }: { message: Message; isDesktop?: boolean }) => {
     const Component = isDesktop ? DropdownMenu : ContextMenu;
@@ -78,7 +90,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
   };
 
   return (
-    <div className="flex-1 overflow-y-auto mb-4 px-4 space-y-4">
+    <div className="flex-1 overflow-y-auto mb-4 px-4 space-y-4 bg-gray-50">
       {messages?.map((message) => {
         const isOwnMessage = message.sender_id === user?.id;
         
@@ -110,7 +122,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
               "group relative max-w-[70%] rounded-lg p-3 shadow-sm transition-all",
               isOwnMessage ? 
                 "bg-blue-500 text-white hover:bg-blue-600" : 
-                "bg-gray-100 hover:bg-gray-200"
+                "bg-white hover:bg-gray-50"
             )}>
               {editingMessageId === message.id ? (
                 <div className="flex gap-2">
@@ -129,7 +141,12 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
                   </button>
                 </div>
               ) : (
-                <p className="break-words text-sm leading-relaxed">{message.content}</p>
+                <p className={cn(
+                  "break-words text-sm leading-relaxed",
+                  !isOwnMessage && "text-gray-800"
+                )}>
+                  {message.content}
+                </p>
               )}
               
               <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">

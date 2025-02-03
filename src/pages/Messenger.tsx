@@ -26,7 +26,7 @@ const Messenger = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -34,7 +34,7 @@ const Messenger = () => {
     }
   });
 
-  const { data: chats } = useQuery({
+  const { data: chats, isLoading: isLoadingChats } = useQuery({
     queryKey: ['chats', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return [];
@@ -67,7 +67,7 @@ const Messenger = () => {
     enabled: !!currentUser
   });
 
-  const { data: selectedChatUser } = useQuery({
+  const { data: selectedChatUser, isLoading: isLoadingChatUser } = useQuery({
     queryKey: ['chatUser', selectedChat],
     enabled: !!selectedChat,
     queryFn: async () => {
@@ -82,7 +82,7 @@ const Messenger = () => {
     }
   });
 
-  const { data: messages } = useQuery({
+  const { data: messages, isLoading: isLoadingMessages } = useQuery({
     queryKey: ['messages', selectedChat],
     enabled: !!selectedChat && !!currentUser,
     queryFn: async () => {
@@ -226,43 +226,60 @@ const Messenger = () => {
     navigate('/dashboard/messenger');
   };
 
+  if (isLoadingUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderChatList = () => (
     <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto bg-gray-50">
-      {chats?.map((chat: any) => (
-        <div
-          key={chat.contact.id}
-          className={cn(
-            "p-4 cursor-pointer rounded-lg transition-all hover:bg-gray-100",
-            selectedChat === chat.contact.id && "bg-gray-100 shadow-sm"
-          )}
-          onClick={() => {
-            setSelectedChat(chat.contact.id);
-            if (isMobile) {
-              navigate(`/dashboard/messenger?userId=${chat.contact.id}`);
-            }
-          }}
-        >
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
-              <AvatarImage src={chat.contact.avatar_url || ''} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
-                {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="font-medium text-lg text-gray-900">
-                {chat.contact.first_name} {chat.contact.last_name}
-              </h3>
-              <Badge 
-                variant={chat.contact.status === 'online' ? 'default' : 'secondary'}
-                className="mt-1"
-              >
-                {chat.contact.status || 'offline'}
-              </Badge>
+      {isLoadingChats ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        chats?.map((chat: any) => (
+          <div
+            key={chat.contact.id}
+            className={cn(
+              "p-4 cursor-pointer rounded-lg transition-all hover:bg-gray-100",
+              selectedChat === chat.contact.id && "bg-gray-100 shadow-sm"
+            )}
+            onClick={() => {
+              setSelectedChat(chat.contact.id);
+              if (isMobile) {
+                navigate(`/dashboard/messenger?userId=${chat.contact.id}`);
+              }
+            }}
+          >
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
+                <AvatarImage src={chat.contact.avatar_url || ''} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
+                  {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium text-lg text-gray-900">
+                  {chat.contact.first_name} {chat.contact.last_name}
+                </h3>
+                <Badge 
+                  variant={chat.contact.status === 'online' ? 'default' : 'secondary'}
+                  className="mt-1"
+                >
+                  {chat.contact.status || 'offline'}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 
@@ -279,31 +296,42 @@ const Messenger = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
-                <AvatarImage src={selectedChatUser?.avatar_url || ''} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
-                  {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="font-medium text-lg text-gray-900">
-                  {selectedChatUser?.first_name} {selectedChatUser?.last_name}
-                </h3>
-                <Badge 
-                  variant={selectedChatUser?.status === 'online' ? 'default' : 'secondary'}
-                  className="mt-1"
-                >
-                  {selectedChatUser?.status || 'offline'}
-                </Badge>
+            {isLoadingChatUser ? (
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-gray-200 animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
+                  <AvatarImage src={selectedChatUser?.avatar_url || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
+                    {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-medium text-lg text-gray-900">
+                    {selectedChatUser?.first_name} {selectedChatUser?.last_name}
+                  </h3>
+                  <Badge 
+                    variant={selectedChatUser?.status === 'online' ? 'default' : 'secondary'}
+                    className="mt-1"
+                  >
+                    {selectedChatUser?.status || 'offline'}
+                  </Badge>
+                </div>
+              </div>
+            )}
           </div>
           
           <MessageList
             messages={messages || []}
             onDeleteMessage={(messageId, forAll) => deleteMutation.mutate({ messageId, forAll })}
             onEditMessage={(messageId, content) => editMutation.mutate({ messageId, content })}
+            isLoading={isLoadingMessages}
           />
           
           <div ref={messagesEndRef} />
