@@ -1,17 +1,24 @@
 export interface Message {
   id: string;
-  content: string;
   sender_id: string;
   receiver_id: string;
-  message_type: 'text' | 'voice' | 'video';
-  voice_url?: string;
-  voice_duration?: number;
-  video_url?: string;
-  video_duration?: number;
-  waveform?: number[];
+  content: string;
   created_at: string;
-  read_at?: string | null;
-  edited_at?: string | null;
-  deleted_at?: string | null;
-  deleted_for_all?: boolean | null;
+  message_type: 'text';
+  read_at?: string;
+  edited_at?: string;
+  deleted_at?: string;
+  deleted_for_all?: boolean;
+  sender?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar_url?: string;
+  };
+  receiver?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar_url?: string;
+  };
 }

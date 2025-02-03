@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, Mic, Video } from 'lucide-react';
+import { Send, ArrowLeft, Paperclip } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
-import VoiceMessage from '@/components/VoiceMessage';
 import MessageList from '@/components/MessageList';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/message';
@@ -19,14 +18,11 @@ const Messenger = () => {
   const userId = searchParams.get('userId');
   const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
-  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
-  const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -187,16 +183,8 @@ const Messenger = () => {
     }
   });
 
-  const sendMessage = async (
-    content: string,
-    type: 'text' | 'voice' | 'video' = 'text',
-    voiceUrl?: string,
-    duration?: number,
-    waveform?: number[],
-    videoUrl?: string,
-    videoDuration?: number
-  ) => {
-    if ((!content && type === 'text') || !selectedChat || !currentUser) return;
+  const sendMessage = async (content: string) => {
+    if (!content || !selectedChat || !currentUser) return;
 
     try {
       const { error } = await supabase
@@ -205,16 +193,11 @@ const Messenger = () => {
           sender_id: currentUser.id,
           receiver_id: selectedChat,
           content,
-          message_type: type,
-          voice_url: voiceUrl,
-          voice_duration: duration,
-          waveform,
-          video_url: videoUrl,
-          video_duration: videoDuration
+          message_type: 'text'
         });
 
       if (error) throw error;
-      if (type === 'text') setNewMessage('');
+      setNewMessage('');
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -222,106 +205,6 @@ const Messenger = () => {
         description: 'Failed to send message. Please try again.',
         variant: 'destructive'
       });
-    }
-  };
-
-  const handleVoiceMessage = async (audioBlob: Blob, waveform: number[], duration: number) => {
-    try {
-      const filename = `voice-${Date.now()}.webm`;
-      const { data, error } = await supabase.storage
-        .from('voice-messages')
-        .upload(filename, audioBlob);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('voice-messages')
-        .getPublicUrl(filename);
-
-      await sendMessage(
-        'Voice message',
-        'voice',
-        publicUrl,
-        duration,
-        waveform
-      );
-    } catch (error) {
-      console.error('Error uploading voice message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send voice message. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleVideoMessage = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      setVideoStream(stream);
-      
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-        videoPreviewRef.current.play();
-      }
-
-      const mediaRecorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      let startTime = Date.now();
-
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = async () => {
-        const duration = Math.round((Date.now() - startTime) / 1000);
-        const videoBlob = new Blob(chunks, { type: 'video/webm' });
-        const filename = `video-${Date.now()}.webm`;
-        
-        const { data, error } = await supabase.storage
-          .from('video-messages')
-          .upload(filename, videoBlob);
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('video-messages')
-          .getPublicUrl(filename);
-
-        await sendMessage(
-          'Video message',
-          'video',
-          undefined,
-          undefined,
-          undefined,
-          publicUrl,
-          duration
-        );
-
-        stream.getTracks().forEach(track => track.stop());
-        setVideoStream(null);
-        setIsRecordingVideo(false);
-      };
-
-      setIsRecordingVideo(true);
-      mediaRecorder.start();
-
-      // Stop recording after 30 seconds
-      setTimeout(() => {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-      }, 30000);
-    } catch (error) {
-      console.error('Error recording video:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to record video message. Please try again.',
-        variant: 'destructive'
-      });
-      setIsRecordingVideo(false);
     }
   };
 
@@ -374,10 +257,10 @@ const Messenger = () => {
   );
 
   const renderMessageContainer = () => (
-    <div className={`flex-1 flex-col ${isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'}`}>
+    <div className={`flex-1 flex flex-col ${isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'}`}>
       {selectedChat && (
         <>
-          <div className="p-4 border-b flex items-center gap-4">
+          <div className="p-4 border-b flex items-center gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
             {isMobile && (
               <Button variant="ghost" size="sm" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
@@ -403,38 +286,19 @@ const Messenger = () => {
               </div>
             </div>
           </div>
+          
           <MessageList
             messages={messages || []}
             onDeleteMessage={(messageId, forAll) => deleteMutation.mutate({ messageId, forAll })}
             onEditMessage={(messageId, content) => editMutation.mutate({ messageId, content })}
           />
+          
           <div ref={messagesEndRef} />
-          {videoStream && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-background p-4 rounded-lg">
-                <video
-                  ref={videoPreviewRef}
-                  className="w-[320px] h-[240px] rounded-lg"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-                <div className="flex justify-end mt-4 gap-2">
-                  <Button
-                    variant="destructive"
-                    onClick={() => {
-                      videoStream.getTracks().forEach(track => track.stop());
-                      setVideoStream(null);
-                      setIsRecordingVideo(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-2 p-4">
+          
+          <div className="flex items-center gap-2 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t sticky bottom-0">
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -442,32 +306,14 @@ const Messenger = () => {
               onKeyPress={(e) => e.key === 'Enter' && sendMessage(newMessage)}
               className="flex-1"
             />
-            <div className="flex gap-2">
-              <VoiceMessage
-                onRecordingComplete={handleVoiceMessage}
-                onCancel={() => {}}
-              />
-              <Button
-                variant={isRecordingVideo ? "destructive" : "default"}
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  if (isRecordingVideo) {
-                    const videoTracks = videoStream?.getTracks() || [];
-                    videoTracks.forEach(track => track.stop());
-                    setVideoStream(null);
-                    setIsRecordingVideo(false);
-                  } else {
-                    handleVideoMessage();
-                  }
-                }}
-              >
-                <Video className="h-4 w-4" />
-              </Button>
-              <Button onClick={() => sendMessage(newMessage)} className="h-9 w-9" size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button 
+              onClick={() => sendMessage(newMessage)} 
+              size="icon"
+              className="shrink-0"
+              disabled={!newMessage.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
         </>
       )}
@@ -476,10 +322,7 @@ const Messenger = () => {
 
   return (
     <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)]">
-      <CardHeader>
-        <CardTitle>Messages</CardTitle>
-      </CardHeader>
-      <CardContent className="flex h-[calc(100%-5rem)] gap-4">
+      <CardContent className="flex h-full gap-4 p-0">
         {(!isMobile || !selectedChat) && renderChatList()}
         {renderMessageContainer()}
       </CardContent>
