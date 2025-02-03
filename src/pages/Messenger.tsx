@@ -227,13 +227,13 @@ const Messenger = () => {
   };
 
   const renderChatList = () => (
-    <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto bg-gray-50">
       {chats?.map((chat: any) => (
         <div
           key={chat.contact.id}
           className={cn(
-            "p-4 cursor-pointer rounded-lg transition-all hover:bg-accent/50",
-            selectedChat === chat.contact.id && "bg-accent shadow-sm"
+            "p-4 cursor-pointer rounded-lg transition-all hover:bg-gray-100",
+            selectedChat === chat.contact.id && "bg-gray-100 shadow-sm"
           )}
           onClick={() => {
             setSelectedChat(chat.contact.id);
@@ -243,14 +243,14 @@ const Messenger = () => {
           }}
         >
           <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+            <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
               <AvatarImage src={chat.contact.avatar_url || ''} />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
                 {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-medium text-lg">
+              <h3 className="font-medium text-lg text-gray-900">
                 {chat.contact.first_name} {chat.contact.last_name}
               </h3>
               <Badge 
@@ -268,26 +268,26 @@ const Messenger = () => {
 
   const renderMessageContainer = () => (
     <div className={cn(
-      "flex-1 flex flex-col bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      "flex-1 flex flex-col bg-white",
       isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'
     )}>
       {selectedChat && (
         <>
-          <div className="p-4 border-b flex items-center gap-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="p-4 border-b flex items-center gap-4 sticky top-0 z-10 bg-white">
             {isMobile && (
               <Button variant="ghost" size="sm" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+              <Avatar className="h-12 w-12 ring-2 ring-blue-500/10">
                 <AvatarImage src={selectedChatUser?.avatar_url || ''} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
                   {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-medium text-lg">
+                <h3 className="font-medium text-lg text-gray-900">
                   {selectedChatUser?.first_name} {selectedChatUser?.last_name}
                 </h3>
                 <Badge 
@@ -308,11 +308,11 @@ const Messenger = () => {
           
           <div ref={messagesEndRef} />
           
-          <div className="flex items-center gap-2 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t sticky bottom-0">
+          <div className="flex items-center gap-2 p-4 bg-white border-t sticky bottom-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="shrink-0 hover:bg-accent"
+              className="shrink-0 hover:bg-gray-100"
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -321,13 +321,13 @@ const Messenger = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage(newMessage)}
-              className="flex-1 focus-visible:ring-primary"
+              className="flex-1 focus-visible:ring-blue-500"
               disabled={isSending}
             />
             <Button 
               onClick={() => sendMessage(newMessage)} 
               size="icon"
-              className="shrink-0"
+              className="shrink-0 bg-blue-500 hover:bg-blue-600"
               disabled={!newMessage.trim() || isSending}
             >
               {isSending ? (
@@ -343,7 +343,7 @@ const Messenger = () => {
   );
 
   return (
-    <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)] bg-white">
       <div className="flex h-full">
         {(!isMobile || !selectedChat) && renderChatList()}
         {renderMessageContainer()}

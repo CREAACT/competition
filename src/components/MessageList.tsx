@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Message } from '../types/message';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { MoreVertical, Check, CheckCheck, Reply } from 'lucide-react';
+import { MoreVertical, Check, CheckCheck, Reply, Loader2 } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -52,7 +52,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
         <Trigger>
           {isDesktop ? (
             <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+              <MoreVertical className="h-4 w-4 text-gray-500 hover:text-gray-700 transition-colors" />
             </button>
           ) : (
             <div className="absolute inset-0" />
@@ -98,7 +98,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
                   `${message.receiver?.first_name} ${message.receiver?.last_name}`
                 }
               />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
                 {isOwnMessage ? 
                   `${message.sender?.first_name?.[0]}${message.sender?.last_name?.[0]}` :
                   `${message.receiver?.first_name?.[0]}${message.receiver?.last_name?.[0]}`
@@ -109,8 +109,8 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage 
             <div className={cn(
               "group relative max-w-[70%] rounded-lg p-3 shadow-sm transition-all",
               isOwnMessage ? 
-                "bg-primary text-primary-foreground hover:bg-primary/90" : 
-                "bg-accent hover:bg-accent/90"
+                "bg-blue-500 text-white hover:bg-blue-600" : 
+                "bg-gray-100 hover:bg-gray-200"
             )}>
               {editingMessageId === message.id ? (
                 <div className="flex gap-2">
