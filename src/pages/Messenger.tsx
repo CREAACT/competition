@@ -1,4 +1,4 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -6,18 +6,20 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, Paperclip } from 'lucide-react';
+import { Send, ArrowLeft, Paperclip, Loader2 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MessageList from '@/components/MessageList';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/message';
+import { cn } from '@/lib/utils';
 
 const Messenger = () => {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
   const [selectedChat, setSelectedChat] = useState<string | null>(userId || null);
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -185,6 +187,7 @@ const Messenger = () => {
 
   const sendMessage = async (content: string) => {
     if (!content || !selectedChat || !currentUser) return;
+    setIsSending(true);
 
     try {
       const { error } = await supabase
@@ -205,6 +208,8 @@ const Messenger = () => {
         description: 'Failed to send message. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -222,9 +227,10 @@ const Messenger = () => {
       {chats?.map((chat: any) => (
         <div
           key={chat.contact.id}
-          className={`p-4 cursor-pointer rounded-lg transition-colors ${
-            selectedChat === chat.contact.id ? 'bg-accent' : 'hover:bg-accent/50'
-          }`}
+          className={cn(
+            "p-4 cursor-pointer rounded-lg transition-colors hover:bg-accent/50",
+            selectedChat === chat.contact.id && "bg-accent"
+          )}
           onClick={() => {
             setSelectedChat(chat.contact.id);
             if (isMobile) {
@@ -235,7 +241,7 @@ const Messenger = () => {
           <div className="flex items-center space-x-4">
             <Avatar>
               <AvatarImage src={chat.contact.avatar_url || ''} />
-              <AvatarFallback>
+              <AvatarFallback className="bg-primary/10">
                 {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
               </AvatarFallback>
             </Avatar>
@@ -257,7 +263,10 @@ const Messenger = () => {
   );
 
   const renderMessageContainer = () => (
-    <div className={`flex-1 flex flex-col ${isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'}`}>
+    <div className={cn(
+      "flex-1 flex flex-col",
+      isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'
+    )}>
       {selectedChat && (
         <>
           <div className="p-4 border-b flex items-center gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
@@ -267,14 +276,14 @@ const Messenger = () => {
               </Button>
             )}
             <div className="flex items-center gap-3">
-              <Avatar>
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={selectedChatUser?.avatar_url || ''} />
-                <AvatarFallback>
+                <AvatarFallback className="bg-primary/10">
                   {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-medium">
+                <h3 className="font-medium text-lg">
                   {selectedChatUser?.first_name} {selectedChatUser?.last_name}
                 </h3>
                 <Badge 
@@ -303,16 +312,21 @@ const Messenger = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage(newMessage)}
+              onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage(newMessage)}
               className="flex-1"
+              disabled={isSending}
             />
             <Button 
               onClick={() => sendMessage(newMessage)} 
               size="icon"
               className="shrink-0"
-              disabled={!newMessage.trim()}
+              disabled={!newMessage.trim() || isSending}
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </>
@@ -322,10 +336,10 @@ const Messenger = () => {
 
   return (
     <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)]">
-      <CardContent className="flex h-full gap-4 p-0">
+      <div className="flex h-full gap-4">
         {(!isMobile || !selectedChat) && renderChatList()}
         {renderMessageContainer()}
-      </CardContent>
+      </div>
     </Card>
   );
 };

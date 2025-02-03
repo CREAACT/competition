@@ -4,6 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { MoreHorizontal, Check, CheckCheck } from 'lucide-react';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,6 +40,36 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
     setEditContent('');
   };
 
+  const MessageActions = ({ message, isDesktop = false }: { message: Message; isDesktop?: boolean }) => {
+    const Component = isDesktop ? DropdownMenu : ContextMenu;
+    const Trigger = isDesktop ? DropdownMenuTrigger : ContextMenuTrigger;
+    const Content = isDesktop ? DropdownMenuContent : ContextMenuContent;
+    const Item = isDesktop ? DropdownMenuItem : ContextMenuItem;
+
+    return (
+      <Component>
+        <Trigger>
+          {isDesktop ? (
+            <button className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ) : (
+            <div className="absolute inset-0" />
+          )}
+        </Trigger>
+        <Content>
+          <Item onClick={() => handleEdit(message)}>Edit</Item>
+          <Item onClick={() => onDeleteMessage(message.id, false)}>
+            Delete for me
+          </Item>
+          <Item onClick={() => onDeleteMessage(message.id, true)}>
+            Delete for everyone
+          </Item>
+        </Content>
+      </Component>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-y-auto mb-4 px-4 space-y-4">
       {messages?.map((message) => {
@@ -47,7 +83,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
               isOwnMessage ? "flex-row-reverse" : "flex-row"
             )}
           >
-            <Avatar className="h-8 w-8 mt-1">
+            <Avatar className="h-8 w-8 mt-1 shrink-0">
               <AvatarImage 
                 src={isOwnMessage ? message.sender?.avatar_url : message.receiver?.avatar_url} 
                 alt={isOwnMessage ? 
@@ -55,7 +91,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                   `${message.receiver?.first_name} ${message.receiver?.last_name}`
                 }
               />
-              <AvatarFallback>
+              <AvatarFallback className="bg-primary/10">
                 {isOwnMessage ? 
                   `${message.sender?.first_name?.[0]}${message.sender?.last_name?.[0]}` :
                   `${message.receiver?.first_name?.[0]}${message.receiver?.last_name?.[0]}`
@@ -86,7 +122,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                   </button>
                 </div>
               ) : (
-                <p className="break-words">{message.content}</p>
+                <p className="break-words text-sm">{message.content}</p>
               )}
               
               <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">
@@ -102,24 +138,17 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                   </>
                 )}
                 {isOwnMessage && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreHorizontal className="h-3 w-3" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleEdit(message)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDeleteMessage(message.id, false)}>
-                        Delete for me
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDeleteMessage(message.id, true)}>
-                        Delete for everyone
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="hidden md:block">
+                    <MessageActions message={message} isDesktop={true} />
+                  </div>
                 )}
               </div>
+              
+              {isOwnMessage && (
+                <div className="md:hidden">
+                  <MessageActions message={message} />
+                </div>
+              )}
             </div>
           </div>
         );
