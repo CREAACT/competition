@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Message } from '../types/message';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { MoreHorizontal, Check, CheckCheck } from 'lucide-react';
+import { MoreVertical, Check, CheckCheck, Reply } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -22,9 +22,10 @@ interface MessageListProps {
   messages: Message[];
   onDeleteMessage: (messageId: string, forAll: boolean) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
+  onReplyMessage?: (message: Message) => void;
 }
 
-const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListProps) => {
+const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage }: MessageListProps) => {
   const { user } = useAuth();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -51,7 +52,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
         <Trigger>
           {isDesktop ? (
             <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
             </button>
           ) : (
             <div className="absolute inset-0" />
@@ -65,6 +66,12 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
           <Item onClick={() => onDeleteMessage(message.id, true)}>
             Delete for everyone
           </Item>
+          {onReplyMessage && (
+            <Item onClick={() => onReplyMessage(message)}>
+              <Reply className="mr-2 h-4 w-4" />
+              Reply
+            </Item>
+          )}
         </Content>
       </Component>
     );
@@ -83,7 +90,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
               isOwnMessage ? "flex-row-reverse" : "flex-row"
             )}
           >
-            <Avatar className="h-8 w-8 mt-1 shrink-0">
+            <Avatar className="h-10 w-10 mt-1 shrink-0 ring-2 ring-primary/10">
               <AvatarImage 
                 src={isOwnMessage ? message.sender?.avatar_url : message.receiver?.avatar_url} 
                 alt={isOwnMessage ? 
@@ -91,7 +98,7 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                   `${message.receiver?.first_name} ${message.receiver?.last_name}`
                 }
               />
-              <AvatarFallback className="bg-primary/10">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                 {isOwnMessage ? 
                   `${message.sender?.first_name?.[0]}${message.sender?.last_name?.[0]}` :
                   `${message.receiver?.first_name?.[0]}${message.receiver?.last_name?.[0]}`
@@ -100,10 +107,10 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
             </Avatar>
             
             <div className={cn(
-              "group relative max-w-[70%] rounded-lg p-3",
+              "group relative max-w-[70%] rounded-lg p-3 shadow-sm transition-all",
               isOwnMessage ? 
-                "bg-primary text-primary-foreground" : 
-                "bg-accent"
+                "bg-primary text-primary-foreground hover:bg-primary/90" : 
+                "bg-accent hover:bg-accent/90"
             )}>
               {editingMessageId === message.id ? (
                 <div className="flex gap-2">
@@ -111,18 +118,18 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage }: MessageListPr
                     type="text"
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="flex-1 bg-transparent border-none focus:outline-none"
+                    className="flex-1 bg-transparent border-none focus:outline-none text-sm"
                     onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit(message.id)}
                   />
                   <button 
                     onClick={() => handleSaveEdit(message.id)}
-                    className="text-xs opacity-70 hover:opacity-100"
+                    className="text-xs opacity-70 hover:opacity-100 transition-opacity"
                   >
                     Save
                   </button>
                 </div>
               ) : (
-                <p className="break-words text-sm">{message.content}</p>
+                <p className="break-words text-sm leading-relaxed">{message.content}</p>
               )}
               
               <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">

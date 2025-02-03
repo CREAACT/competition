@@ -201,6 +201,10 @@ const Messenger = () => {
 
       if (error) throw error;
       setNewMessage('');
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -223,13 +227,13 @@ const Messenger = () => {
   };
 
   const renderChatList = () => (
-    <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto">
+    <div className="w-full md:w-1/3 border-r pr-4 overflow-y-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {chats?.map((chat: any) => (
         <div
           key={chat.contact.id}
           className={cn(
-            "p-4 cursor-pointer rounded-lg transition-colors hover:bg-accent/50",
-            selectedChat === chat.contact.id && "bg-accent"
+            "p-4 cursor-pointer rounded-lg transition-all hover:bg-accent/50",
+            selectedChat === chat.contact.id && "bg-accent shadow-sm"
           )}
           onClick={() => {
             setSelectedChat(chat.contact.id);
@@ -239,14 +243,14 @@ const Messenger = () => {
           }}
         >
           <div className="flex items-center space-x-4">
-            <Avatar>
+            <Avatar className="h-12 w-12 ring-2 ring-primary/10">
               <AvatarImage src={chat.contact.avatar_url || ''} />
-              <AvatarFallback className="bg-primary/10">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                 {chat.contact.first_name?.[0]}{chat.contact.last_name?.[0]}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-medium">
+              <h3 className="font-medium text-lg">
                 {chat.contact.first_name} {chat.contact.last_name}
               </h3>
               <Badge 
@@ -264,21 +268,21 @@ const Messenger = () => {
 
   const renderMessageContainer = () => (
     <div className={cn(
-      "flex-1 flex flex-col",
+      "flex-1 flex flex-col bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       isMobile ? (selectedChat ? 'flex' : 'hidden') : 'flex'
     )}>
       {selectedChat && (
         <>
-          <div className="p-4 border-b flex items-center gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+          <div className="p-4 border-b flex items-center gap-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             {isMobile && (
               <Button variant="ghost" size="sm" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-12 w-12 ring-2 ring-primary/10">
                 <AvatarImage src={selectedChatUser?.avatar_url || ''} />
-                <AvatarFallback className="bg-primary/10">
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                   {selectedChatUser?.first_name?.[0]}{selectedChatUser?.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
@@ -305,7 +309,11 @@ const Messenger = () => {
           <div ref={messagesEndRef} />
           
           <div className="flex items-center gap-2 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t sticky bottom-0">
-            <Button variant="ghost" size="icon" className="shrink-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0 hover:bg-accent"
+            >
               <Paperclip className="h-4 w-4" />
             </Button>
             <Input
@@ -313,7 +321,7 @@ const Messenger = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage(newMessage)}
-              className="flex-1"
+              className="flex-1 focus-visible:ring-primary"
               disabled={isSending}
             />
             <Button 
@@ -335,8 +343,8 @@ const Messenger = () => {
   );
 
   return (
-    <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)]">
-      <div className="flex h-full gap-4">
+    <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-full">
         {(!isMobile || !selectedChat) && renderChatList()}
         {renderMessageContainer()}
       </div>
