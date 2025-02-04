@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { User, Users, LogOut, Menu, MessageSquare, UserPlus, Bell } from "lucide-react";
+import { User, Users, LogOut, Menu, MessageSquare, UserPlus, Bell, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,60 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [activityId, setActivityId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const trackUserActivity = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create activity record on login
+      const { data, error } = await supabase
+        .from('user_activity')
+        .insert({
+          user_id: user.id,
+          login_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error tracking activity:', error);
+        return;
+      }
+
+      if (data) {
+        setActivityId(data.id);
+      }
+    };
+
+    trackUserActivity();
+
+    // Update activity on window close/refresh
+    const handleBeforeUnload = async () => {
+      if (!activityId) return;
+
+      const now = new Date();
+      const { error } = await supabase
+        .from('user_activity')
+        .update({
+          logout_at: now.toISOString(),
+          duration_minutes: 0 // This will be calculated by a trigger
+        })
+        .eq('id', activityId);
+
+      if (error) {
+        console.error('Error updating activity:', error);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      handleBeforeUnload();
+    };
+  }, [activityId]);
 
   useEffect(() => {
     const fetchFriendRequests = async () => {
@@ -82,6 +136,18 @@ export function DashboardLayout() {
 
   const handleLogout = async () => {
     try {
+      // Update activity record on logout
+      if (activityId) {
+        const now = new Date();
+        await supabase
+          .from('user_activity')
+          .update({
+            logout_at: now.toISOString(),
+            duration_minutes: 0 // This will be calculated by a trigger
+          })
+          .eq('id', activityId);
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success('Logged out successfully');
@@ -108,6 +174,12 @@ export function DashboardLayout() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/profile')} className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span>Profile</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/activity')} className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                <span>Activity</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
