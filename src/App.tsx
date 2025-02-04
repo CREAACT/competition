@@ -6,7 +6,7 @@ import Profile from "@/pages/Profile";
 import Participants from "@/pages/Participants";
 import Friends from "@/pages/Friends";
 import Messenger from "@/pages/Messenger";
-import Activity from "@/pages/Activity";
+import { Activity } from "@/pages/Activity";
 import NotFound from "@/pages/NotFound";
 import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
