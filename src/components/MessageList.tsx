@@ -53,6 +53,12 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage,
     );
   }
 
+  const shouldShowAvatar = (messages: Message[], index: number, currentMessage: Message) => {
+    if (index === 0) return true;
+    const previousMessage = messages[index - 1];
+    return previousMessage.sender_id !== currentMessage.sender_id;
+  };
+
   const MessageActions = ({ message, isDesktop = false }: { message: Message; isDesktop?: boolean }) => {
     const Component = isDesktop ? DropdownMenu : ContextMenu;
     const Trigger = isDesktop ? DropdownMenuTrigger : ContextMenuTrigger;
@@ -91,8 +97,9 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage,
 
   return (
     <div className="flex-1 overflow-y-auto mb-4 px-4 space-y-4 bg-gray-50">
-      {messages?.map((message) => {
+      {messages?.map((message, index) => {
         const isOwnMessage = message.sender_id === user?.id;
+        const showAvatar = !isOwnMessage && shouldShowAvatar(messages, index, message);
         
         return (
           <div
@@ -102,27 +109,24 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage,
               isOwnMessage ? "flex-row-reverse" : "flex-row"
             )}
           >
-            <Avatar className="h-10 w-10 mt-1 shrink-0 ring-2 ring-primary/10">
-              <AvatarImage 
-                src={isOwnMessage ? message.sender?.avatar_url : message.receiver?.avatar_url} 
-                alt={isOwnMessage ? 
-                  `${message.sender?.first_name} ${message.sender?.last_name}` : 
-                  `${message.receiver?.first_name} ${message.receiver?.last_name}`
-                }
-              />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
-                {isOwnMessage ? 
-                  `${message.sender?.first_name?.[0]}${message.sender?.last_name?.[0]}` :
-                  `${message.receiver?.first_name?.[0]}${message.receiver?.last_name?.[0]}`
-                }
-              </AvatarFallback>
-            </Avatar>
+            {showAvatar && (
+              <Avatar className="h-10 w-10 mt-1 shrink-0 ring-2 ring-primary/10">
+                <AvatarImage 
+                  src={message.sender?.avatar_url} 
+                  alt={`${message.sender?.first_name} ${message.sender?.last_name}`}
+                />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 text-blue-500">
+                  {message.sender?.first_name?.[0]}{message.sender?.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+            )}
             
             <div className={cn(
               "group relative max-w-[70%] rounded-lg p-3 shadow-sm transition-all",
               isOwnMessage ? 
                 "bg-blue-500 text-white hover:bg-blue-600" : 
-                "bg-white hover:bg-gray-50"
+                "bg-white hover:bg-gray-50",
+              !showAvatar && !isOwnMessage && "ml-[52px]" // Add margin when avatar is hidden
             )}>
               {editingMessageId === message.id ? (
                 <div className="flex gap-2">
@@ -141,12 +145,19 @@ const MessageList = ({ messages, onDeleteMessage, onEditMessage, onReplyMessage,
                   </button>
                 </div>
               ) : (
-                <p className={cn(
-                  "break-words text-sm leading-relaxed",
-                  !isOwnMessage && "text-gray-800"
-                )}>
-                  {message.content}
-                </p>
+                <>
+                  {showAvatar && !isOwnMessage && (
+                    <div className="text-xs font-medium text-gray-500 mb-1">
+                      {message.sender?.first_name} {message.sender?.last_name}
+                    </div>
+                  )}
+                  <p className={cn(
+                    "break-words text-sm leading-relaxed",
+                    !isOwnMessage && "text-gray-800"
+                  )}>
+                    {message.content}
+                  </p>
+                </>
               )}
               
               <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">
