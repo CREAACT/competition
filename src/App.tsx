@@ -60,10 +60,11 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-      <Toaster />
-    </AuthProvider>
+    <RouterProvider router={router}>
+      <AuthProvider>
+        <Toaster />
+      </AuthProvider>
+    </RouterProvider>
   );
 }
 
