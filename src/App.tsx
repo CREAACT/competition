@@ -1,82 +1,70 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import Register from "./pages/Register";
-import Login from "./pages/Login";
-import { DashboardLayout } from "./components/DashboardLayout";
-import Profile from "./pages/Profile";
-import Participants from "./pages/Participants";
-import Friends from "./pages/Friends";
-import Messenger from "./pages/Messenger";
-import NotFound from "./pages/NotFound";
-import { useEffect, useState } from "react";
-import { supabase } from "./integrations/supabase/client";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Login } from "@/pages/Login";
+import { Register } from "@/pages/Register";
+import { Profile } from "@/pages/Profile";
+import { Participants } from "@/pages/Participants";
+import { Friends } from "@/pages/Friends";
+import { Messenger } from "@/pages/Messenger";
+import { Activity } from "@/pages/Activity";
+import { NotFound } from "@/pages/NotFound";
+import { Index } from "@/pages/Index";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
+import "./App.css";
 
-const queryClient = new QueryClient();
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+  },
+  {
+    path: "/dashboard",
+    element: <DashboardLayout />,
+    children: [
+      {
+        path: "profile",
+        element: <Profile />,
+      },
+      {
+        path: "activity",
+        element: <Activity />,
+      },
+      {
+        path: "participants",
+        element: <Participants />,
+      },
+      {
+        path: "friends",
+        element: <Friends />,
+      },
+      {
+        path: "messenger",
+        element: <Messenger />,
+      },
+    ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(!!session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (session === null) {
-    return null; // Loading state
-  }
-
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard/profile" replace />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="participants" element={<Participants />} />
-              <Route path="friends" element={<Friends />} />
-              <Route path="messenger" element={<Messenger />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+      <Toaster />
+    </AuthProvider>
+  );
+}
 
 export default App;
