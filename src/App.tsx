@@ -11,43 +11,62 @@ import NotFound from "@/pages/NotFound";
 import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <AuthProvider>
-        <Index />
-        <Toaster />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Index />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
     ),
   },
   {
     path: "/login",
     element: (
-      <AuthProvider>
-        <Login />
-        <Toaster />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Login />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
     ),
   },
   {
     path: "/register",
     element: (
-      <AuthProvider>
-        <Register />
-        <Toaster />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Register />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
     ),
   },
   {
     path: "/dashboard",
     element: (
-      <AuthProvider>
-        <DashboardLayout />
-        <Toaster />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <DashboardLayout />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
     ),
     children: [
       {
@@ -75,10 +94,12 @@ const router = createBrowserRouter([
   {
     path: "*",
     element: (
-      <AuthProvider>
-        <NotFound />
-        <Toaster />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotFound />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
     ),
   },
 ]);
