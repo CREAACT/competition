@@ -16,19 +16,39 @@ import "./App.css";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
+    element: (
+      <AuthProvider>
+        <Index />
+        <Toaster />
+      </AuthProvider>
+    ),
   },
   {
     path: "/login",
-    element: <Login />,
+    element: (
+      <AuthProvider>
+        <Login />
+        <Toaster />
+      </AuthProvider>
+    ),
   },
   {
     path: "/register",
-    element: <Register />,
+    element: (
+      <AuthProvider>
+        <Register />
+        <Toaster />
+      </AuthProvider>
+    ),
   },
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: (
+      <AuthProvider>
+        <DashboardLayout />
+        <Toaster />
+      </AuthProvider>
+    ),
     children: [
       {
         path: "profile",
@@ -54,18 +74,17 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: (
+      <AuthProvider>
+        <NotFound />
+        <Toaster />
+      </AuthProvider>
+    ),
   },
 ]);
 
 function App() {
-  return (
-    <RouterProvider router={router}>
-      <AuthProvider>
-        <Toaster />
-      </AuthProvider>
-    </RouterProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
