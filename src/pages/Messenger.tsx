@@ -13,6 +13,7 @@ import MessageList from '@/components/MessageList';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/message';
 import { cn } from '@/lib/utils';
+import AdminPanel from '@/components/AdminPanel';
 
 const Messenger = () => {
   const [searchParams] = useSearchParams();
@@ -371,12 +372,15 @@ const Messenger = () => {
   );
 
   return (
-    <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)] bg-white">
-      <div className="flex h-full">
-        {(!isMobile || !selectedChat) && renderChatList()}
-        {renderMessageContainer()}
-      </div>
-    </Card>
+    <>
+      <AdminPanel />
+      <Card className="max-w-4xl mx-auto h-[calc(100vh-8rem)] bg-white">
+        <div className="flex h-full">
+          {(!isMobile || !selectedChat) && renderChatList()}
+          {renderMessageContainer()}
+        </div>
+      </Card>
+    </>
   );
 };
 
