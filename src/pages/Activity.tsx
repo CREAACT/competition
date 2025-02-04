@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { UserActivityChart } from "@/components/UserActivityChart";
 import { UserSearch } from "@/components/UserSearch";
 
-export function Activity() {
+const Activity = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Activity</h1>
@@ -18,4 +18,6 @@ export function Activity() {
       </div>
     </div>
   );
-}
+};
+
+export default Activity;
