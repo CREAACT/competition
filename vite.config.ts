@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    cors: true, // Enable CORS for all origins in development
+    cors: true,
   },
   preview: {
     port: 8080,
@@ -29,8 +29,18 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-slot'],
+          charts: ['recharts'],
+          form: ['react-hook-form', '@hookform/resolvers'],
+          supabase: ['@supabase/supabase-js'],
         },
       },
     },
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096,
   },
 }));
