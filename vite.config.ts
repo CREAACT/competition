@@ -7,14 +7,13 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     cors: true,
+    allowedHosts: ["competitioon.onrender.com"], // ✅ Добавлено разрешение хоста
   },
   preview: {
     port: 8080,
     cors: true,
   },
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
