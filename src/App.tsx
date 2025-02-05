@@ -44,13 +44,61 @@ const router = createBrowserRouter([
     element: (
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <Index />
-          </Suspense>
+          <DashboardLayout />
           <Toaster />
         </AuthProvider>
       </QueryClientProvider>
     ),
+    children: [
+      {
+        path: "",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Index />
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/profile",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Profile />
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/activity",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Activity />
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/participants",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Participants />
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/friends",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Friends />
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/messenger",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Messenger />
+          </Suspense>
+        ),
+      },
+    ],
   },
   {
     path: "/login",
@@ -77,59 +125,6 @@ const router = createBrowserRouter([
         </AuthProvider>
       </QueryClientProvider>
     ),
-  },
-  {
-    path: "/dashboard",
-    element: (
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <DashboardLayout />
-          <Toaster />
-        </AuthProvider>
-      </QueryClientProvider>
-    ),
-    children: [
-      {
-        path: "profile",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Profile />
-          </Suspense>
-        ),
-      },
-      {
-        path: "activity",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Activity />
-          </Suspense>
-        ),
-      },
-      {
-        path: "participants",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Participants />
-          </Suspense>
-        ),
-      },
-      {
-        path: "friends",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Friends />
-          </Suspense>
-        ),
-      },
-      {
-        path: "messenger",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Messenger />
-          </Suspense>
-        ),
-      },
-    ],
   },
   {
     path: "*",

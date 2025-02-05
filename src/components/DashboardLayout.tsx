@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { User, Users, LogOut, Menu, MessageSquare, UserPlus, Bell, Activity } from "lucide-react";
+import { User, Users, LogOut, Menu, MessageSquare, UserPlus, Bell, Activity, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,6 +170,12 @@ export function DashboardLayout() {
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => handleNavigation('/')} className="flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                <span>Olympiad</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/profile')} className="flex items-center gap-2">
                 <User className="w-4 h-4" />
