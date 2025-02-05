@@ -35,7 +35,7 @@ const Login = () => {
       }
 
       toast.success('Successfully logged in!');
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast.error('An unexpected error occurred. Please try again.');
       console.error('Login error:', error);

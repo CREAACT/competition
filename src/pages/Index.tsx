@@ -63,7 +63,7 @@ const Index = () => {
           </div>
         ) : (
           <Button 
-            onClick={() => navigate("/dashboard")} 
+            onClick={() => navigate("/")} 
             size="lg"
             className="group hover:scale-105 transition-transform animate-[fade-in_0.5s_ease-out_1.2s_forwards] opacity-0"
           >
@@ -129,7 +129,7 @@ const Index = () => {
             </p>
             <Button className="w-full sm:w-auto group hover:scale-105 transition-transform">
               <Book className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-              View Word List
+              <a  href="https://zabanafzar.ir/files/Headway-5th-Edition/Headway-PreIntermediate-5th-Edition/03-Headway-Pre-Intermediate-5th-Edition-Wordlist.pdf">View Word List</a>
             </Button>
           </div>
         </Card>
